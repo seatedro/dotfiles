@@ -15,53 +15,81 @@ local source_mapping = {
 	path = "[Path]",
 }
 local lspkind = require("lspkind")
-
-cmp.setup({
-	snippet = {
-		expand = function(args)
-			-- For `vsnip` user.
-			-- vim.fn["vsnip#anonymous"](args.body)
-			-- For `luasnip` user.
-			require("luasnip").lsp_expand(args.body)
-
-			-- For `ultisnips` user.
-			-- vim.fn["UltiSnips#Anon"](args.body)
-		end,
-	},
-	mapping = cmp.mapping.preset.insert({
-        ['<C-y>'] = cmp.mapping.confirm({ select = true }),
-		["<C-u>"] = cmp.mapping.scroll_docs(-4),
-		["<C-d>"] = cmp.mapping.scroll_docs(4),
-		["<C-Space>"] = cmp.mapping.complete(),
-	}),
-
-	formatting = {
-		format = function(entry, vim_item)
-			vim_item.kind = lspkind.presets.default[vim_item.kind]
-			local menu = source_mapping[entry.source.name]
-			vim_item.menu = menu
-			return vim_item
-		end,
-	},
-
-	sources = {
-		-- tabnine completion? yayaya
-
-
-		{ name = "nvim_lsp" },
-
-		-- For vsnip user.
-		-- { name = 'vsnip' },
-
-		-- For luasnip user.
-		{ name = "luasnip" },
-
-		-- For ultisnips user.
-		-- { name = 'ultisnips' },
-
-		{ name = "buffer" },
-	},
-})
+--
+-- cmp.setup({
+-- 	snippet = {
+-- 		expand = function(args)
+-- 			-- For `vsnip` user.
+-- 			-- vim.fn["vsnip#anonymous"](args.body)
+-- 			-- For `luasnip` user.
+-- 			require("luasnip").lsp_expand(args.body)
+--
+-- 			-- For `ultisnips` user.
+-- 			-- vim.fn["UltiSnips#Anon"](args.body)
+-- 		end,
+-- 	},
+-- 	mapping = cmp.mapping.preset.insert({
+--     ["<CR>"] = cmp.mapping.confirm({ select = true }),
+-- 		["<C-u>"] = cmp.mapping.scroll_docs(-4),
+-- 		["<C-d>"] = cmp.mapping.scroll_docs(4),
+-- 		["<C-Space>"] = cmp.mapping.complete(),
+--     ["<Tab>"] = cmp.mapping(function(fallback)
+-- 			if cmp.visible() then
+-- 				cmp.select_next_item()
+-- 			elseif luasnip.expandable() then
+-- 				luasnip.expand()
+-- 			elseif luasnip.expand_or_jumpable() then
+-- 				luasnip.expand_or_jump()
+-- 			elseif check_backspace() then
+-- 				fallback()
+-- 			else
+-- 				fallback()
+-- 			end
+--     end, {
+-- 			"i",
+-- 			"s",
+-- 		}),
+--     ["<S-Tab>"] = cmp.mapping(function(fallback)
+--       if cmp.visible() then
+--         cmp.select_prev_item()
+--       elseif luasnip.jumpable(-1) then
+--         luasnip.jump(-1)
+--       else
+--         fallback()
+--       end
+--     end, {
+--       "i",
+--       "s",
+--     }),
+-- 	}),
+--
+-- 	formatting = {
+-- 		format = function(entry, vim_item)
+-- 			vim_item.kind = lspkind.presets.default[vim_item.kind]
+-- 			local menu = source_mapping[entry.source.name]
+-- 			vim_item.menu = menu
+-- 			return vim_item
+-- 		end,
+-- 	},
+--
+-- 	sources = {
+-- 		-- tabnine completion? yayaya
+--
+--
+-- 		{ name = "nvim_lsp" },
+--
+-- 		-- For vsnip user.
+-- 		-- { name = 'vsnip' },
+--
+-- 		-- For luasnip user.
+-- 		{ name = "luasnip" },
+--
+-- 		-- For ultisnips user.
+-- 		-- { name = 'ultisnips' },
+--
+-- 		{ name = "buffer" },
+-- 	},
+-- })
 
 local function config(_config)
 	return vim.tbl_deep_extend("force", {

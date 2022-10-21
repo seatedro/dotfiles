@@ -1,3 +1,8 @@
 require("rpc.packer")
 require("rpc.set")
 require("rpc.remap")
+require("rpc.bufferline")
+require("rpc.cmp")
+require("rpc.autopairs")
+require("rpc.gitsigns")
+require("rpc.illuminate")
