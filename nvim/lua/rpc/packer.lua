@@ -23,8 +23,10 @@ return require('packer').startup(function(use)
   use("nvim-treesitter/nvim-treesitter", {
         run = ":TSUpdate"
     })
+  use("p00f/nvim-ts-rainbow")
 
   use("mbbill/undotree")
   use("simrat39/rust-tools.nvim")
   use("github/copilot.vim")
+  use("terrortylor/nvim-comment")
 end)
