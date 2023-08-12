@@ -20,6 +20,5 @@ local ui = require("harpoon.ui")
 
 map("n", "<leader>a", mark.add_file, { desc = "Mark file (Harpoon)" })
 map("n", "<S-h>", ui.toggle_quick_menu)
-map("n", "<C-q>", function() ui.nav_file(1) end)
-map("n", "<C-w>", function() ui.nav_file(2) end)
-map("n", "<C-e>", function() ui.nav_file(3) end)
+map("n", "<C-q>", function() ui.nav_prev() end)
+map("n", "<C-e>", function() ui.nav_next() end)

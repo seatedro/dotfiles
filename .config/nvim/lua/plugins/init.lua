@@ -11,7 +11,7 @@ return {
         ["<Up>"] = cmp.mapping(cmp.mapping.select_prev_item { behavior = cmp.SelectBehavior.Select }, { "i" }),
         ["<C-d>"] = cmp.mapping.scroll_docs(-4),
         ["<C-f>"] = cmp.mapping.scroll_docs(4),
-        ["<C-y>"] = cmp.mapping {
+        ["<Tab>"] = cmp.mapping {
           i = cmp.mapping.confirm { behavior = cmp.ConfirmBehavior.Replace, select = false },
           c = function(fallback)
             if cmp.visible() then
@@ -34,4 +34,28 @@ return {
       open_mapping = [[<C-\>]],
     },
   },
+  -- Setup null-ls with `black`
+  {
+    "jose-elias-alvarez/null-ls.nvim",
+    opts = function(_, opts)
+      local nls = require("null-ls")
+      table.insert(opts.sources, nls.builtins.formatting.ruff)
+      table.insert(opts.sources, nls.builtins.formatting.black)
+      table.insert(opts.sources, nls.builtins.formatting.prettier)
+      table.insert(opts.sources, nls.builtins.formatting.ocamlformat)
+      -- opts.sources = vim.list_extend(opts.sources, {
+      --   -- Order of formatters matters. They are used in order of appearance.
+      --   nls.builtins.formatting.ruff,
+      --   nls.builtins.formatting.black,
+      --   nls.builtins.formatting.
+      --   -- nls.builtins.formatting.black.with({
+      --   --   extra_args = { "--preview" },
+      --   -- }),
+      --   -- nls.builtins.diagnostics.ruff,
+      -- })
+    end,
+  },
+  {
+    "wakatime/vim-wakatime"
+  }
 }
