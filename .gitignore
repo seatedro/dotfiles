@@ -1,2 +1,3 @@
 nvim/pack
 .config/tmux/plugins
+Brewfile.lock.json
