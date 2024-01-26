@@ -62,6 +62,7 @@ config.window_background_image_hsb = {
 
 -- Font
 config.font = wezterm.font("FiraCode Nerd Font")
+config.font_size = 18.0
 
 -- Window Decorations
 config.window_decorations = "RESIZE"
