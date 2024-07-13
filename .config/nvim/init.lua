@@ -288,6 +288,7 @@ require('lazy').setup({
         ['<leader>w'] = { name = '[W]orkspace', _ = 'which_key_ignore' },
         ['<leader>t'] = { name = '[T]oggle', _ = 'which_key_ignore' },
         ['<leader>h'] = { name = 'Git [H]unk', _ = 'which_key_ignore' },
+        ['<leader>b'] = { name = '[B]uffer', _ = 'which_key_ignore' },
       }
       -- visual mode
       require('which-key').register({
@@ -908,6 +909,8 @@ require('lazy').setup({
     },
   },
 })
+
+require 'config'
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
