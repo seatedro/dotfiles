@@ -46,3 +46,18 @@ local function bufremove(buf)
 end
 
 map('n', '<leader>bd', bufremove, { desc = 'Delete Buffer' })
+
+-- Create llm.md
+function Create_llm_md()
+  local cwd = vim.fn.getcwd()
+  local cur_buf = vim.api.nvim_get_current_buf()
+  local cur_buf_name = vim.api.nvim_buf_get_name(cur_buf)
+  local llm_md_path = cwd .. '/llm.md'
+  if cur_buf_name ~= llm_md_path then
+    vim.api.nvim_command('edit ' .. llm_md_path)
+    local buf = vim.api.nvim_get_current_buf()
+    vim.api.nvim_buf_set_option(buf, 'filetype', 'markdown')
+    vim.api.nvim_win_set_buf(0, buf)
+  end
+end
+map('n', '<leader>lm', Create_llm_md, { desc = 'Create llm.md' })

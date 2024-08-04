@@ -289,6 +289,7 @@ require('lazy').setup({
         ['<leader>t'] = { name = '[T]oggle', _ = 'which_key_ignore' },
         ['<leader>h'] = { name = 'Git [H]unk', _ = 'which_key_ignore' },
         ['<leader>b'] = { name = '[B]uffer', _ = 'which_key_ignore' },
+        ['<leader>l'] = { name = '[L]lm', _ = 'which_key_ignore' },
       }
       -- visual mode
       require('which-key').register({
@@ -578,6 +579,7 @@ require('lazy').setup({
         -- But for many setups, the LSP (`tsserver`) will work just fine
         templ = {},
         tsserver = {},
+        zls = {},
         --
 
         lua_ls = {
@@ -659,7 +661,8 @@ require('lazy').setup({
         --
         -- You can use a sub-list to tell conform to run *until* a formatter
         -- is found.
-        -- javascript = { { "prettierd", "prettier" } },
+        javascript = { { 'prettierd', 'prettier' } },
+        typescript = { { 'prettierd', 'prettier' } },
       },
     },
   },
