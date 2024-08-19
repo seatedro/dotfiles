@@ -61,3 +61,49 @@ function Create_llm_md()
   end
 end
 map('n', '<leader>lm', Create_llm_md, { desc = 'Create llm.md' })
+
+-- better navigation in insert mode
+map('i', '<C-h>', '<Left>', { desc = 'Move cursor left' })
+map('i', '<C-j>', '<Down>', { desc = 'Move cursor down' })
+map('i', '<C-k>', '<Up>', { desc = 'Move cursor up' })
+map('i', '<C-l>', '<Right>', { desc = 'Move cursor right' })
+
+map('i', '<C-a>', '<Home>', { desc = 'Move cursor to start of line' })
+map('i', '<C-e>', '<End>', { desc = 'Move cursor to end of line' })
+map('i', '<C-b>', '<S-Left>', { desc = 'Move cursor to start of previous word' })
+map('i', '<C-f>', '<S-Right>', { desc = 'Move cursor to end of next word' })
+
+-- harpoon keymaps
+local harpoon = require 'harpoon'
+local mark = require 'harpoon.mark'
+local ui = require 'harpoon.ui'
+harpoon.setup()
+
+map('n', '<leader>za', function()
+  mark.add_file()
+end, { desc = 'Add harpoon' })
+map('n', '<leader>zl', function()
+  ui.toggle_quick_menu()
+end, { desc = 'Toggle harpoon quick menu' })
+
+-- set ctrl+1,2,3,4 for harpoon selection
+map('n', '<C-q>', function()
+  ui.nav_file(1)
+end)
+map('n', '<C-t>', function()
+  ui.nav_file(2)
+end)
+map('n', '<C-3>', function()
+  ui.nav_file(3)
+end)
+map('n', '<C-4>', function()
+  ui.nav_file(4)
+end)
+
+-- toggle next and previous harpoon
+map('n', '<leader>zn', function()
+  ui.nav_next()
+end, { desc = 'Next harpoon' })
+map('n', '<leader>zp', function()
+  ui.nav_prev()
+end, { desc = 'Previous harpoon' })
