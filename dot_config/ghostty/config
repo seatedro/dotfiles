@@ -1,0 +1,77 @@
+minimum-contrast = 1.0
+
+window-theme = "dark"
+window-decoration = true
+window-vsync = true
+window-colorspace = display-p3
+window-padding-x = 15
+window-padding-y = 15
+window-padding-balance = true
+window-save-state = always
+
+shell-integration = zsh
+shell-integration-features = no-cursor,sudo,title
+
+# title = "Ghostty 👻"
+macos-titlebar-style = tabs
+macos-option-as-alt = true
+
+cursor-style = block
+cursor-style-blink = true
+
+clipboard-read = allow
+clipboard-write = allow
+copy-on-select = clipboard
+clipboard-paste-protection = false
+
+confirm-close-surface = false
+quit-after-last-window-closed = true
+
+mouse-hide-while-typing = true
+
+# Default font
+font-family             = "JetBrains Mono NL"
+font-style              = "Regular"
+# Bold
+font-family-bold        = "JetBrains Mono NL"
+font-style-bold         = "Bold"
+# Italic
+font-family-italic      = "JetBrains Mono NL"
+font-style-italic       = "Italic"
+# Bold and Italic
+font-family-bold-italic = "JetBrains Mono NL"
+font-style-bold-italic  = "ExtraBold Italic"
+
+# Fallback font
+font-family             = "GeistMono Nerd Font"
+font-style              = "Regular"
+# Bold
+font-family-bold        = "GeistMono Nerd Font"
+font-style-bold         = "Bold"
+# Italic
+font-family-italic      = "GeistMono Nerd Font"
+font-style-italic       = "Italic"
+
+font-size = 16
+font-thicken = false
+
+background = #181818
+foreground = #d8d8d8
+selection-invert-fg-bg = true
+
+palette = 0=#181818
+palette = 1=#AC4242
+palette = 2=#90A959
+palette = 3=#F4BF75
+palette = 4=#6A9FB5
+palette = 5=#AA759F
+palette = 6=#75B5AA
+palette = 7=#d8d8d8
+palette = 8=#6b6b6b
+palette = 9=#C55555
+palette = 10=#AAC474
+palette = 11=#FECA88
+palette = 12=#82B8C8
+palette = 13=#C28CB8
+palette = 14=#93D3C3
+palette = 15=#f8f8f8
