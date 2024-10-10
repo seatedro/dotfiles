@@ -27,7 +27,7 @@ clipboard-paste-protection = false
 confirm-close-surface = false
 quit-after-last-window-closed = true
 
-mouse-hide-while-typing = true
+mouse-hide-while-typing = false
 
 # Default font
 font-family             = "JetBrains Mono NL"
