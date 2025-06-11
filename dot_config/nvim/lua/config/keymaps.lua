@@ -73,6 +73,12 @@ map('i', '<C-e>', '<End>', { desc = 'Move cursor to end of line' })
 map('i', '<C-b>', '<S-Left>', { desc = 'Move cursor to start of previous word' })
 map('i', '<C-f>', '<S-Right>', { desc = 'Move cursor to end of next word' })
 
+for i = 1, 9 do
+  vim.keymap.set('n', string.format('<C-%d>', i), function()
+    vim.api.nvim_set_current_buf(vim.t.bufs[i])
+  end)
+end
+
 -- harpoon keymaps
 local harpoon = require 'harpoon'
 local mark = require 'harpoon.mark'
@@ -86,7 +92,7 @@ map('n', '<leader>zl', function()
   ui.toggle_quick_menu()
 end, { desc = 'Toggle harpoon quick menu' })
 
--- set ctrl+1,2,3,4 for harpoon selection
+-- Leader-based harpoon file navigation
 map('n', '<leader>z1', function()
   ui.nav_file(1)
 end)
@@ -99,6 +105,20 @@ end)
 map('n', '<leader>z4', function()
   ui.nav_file(4)
 end)
+
+-- Alternative Ctrl-based harpoon file navigation
+-- map('n', '<C-h>', function()
+--   ui.nav_file(1)
+-- end, { desc = 'Harpoon file 1' })
+-- map('n', '<C-j>', function()
+--   ui.nav_file(2)
+-- end, { desc = 'Harpoon file 2' })
+-- map('n', '<C-k>', function()
+--   ui.nav_file(3)
+-- end, { desc = 'Harpoon file 3' })
+-- map('n', '<C-l>', function()
+--   ui.nav_file(4)
+-- end, { desc = 'Harpoon file 4' })
 
 -- toggle next and previous harpoon
 map('n', '<leader>zn', function()

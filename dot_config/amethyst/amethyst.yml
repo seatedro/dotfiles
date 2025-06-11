@@ -1,0 +1,119 @@
+# Layouts to enable (in order of cycling)
+layouts:
+  - tall
+  - wide
+  - fullscreen
+  - column
+
+# Modifier keys (option = alt on Mac)
+mod1:
+  - option
+mod2:
+  - option
+  - shift
+
+# Window focus and movement commands (i3-like)
+commands:
+  # Screen focus
+  focus-screen-1:
+    mod: mod1
+    key: '1'
+  focus-screen-2:
+    mod: mod1
+    key: '2'
+  focus-screen-3:
+    mod: mod1
+    key: '3'
+
+  # Window focus (vim-style like i3)
+  focus-left:
+    mod: mod1
+    key: h
+  focus-right:
+    mod: mod1
+    key: l
+  focus-up:
+    mod: mod1
+    key: k
+  focus-down:
+    mod: mod1
+    key: j
+
+  # Window movement (with shift, like i3)
+  swap-left:
+    mod: mod2
+    key: h
+  swap-right:
+    mod: mod2
+    key: l
+  swap-up:
+    mod: mod2
+    key: k
+  swap-down:
+    mod: mod2
+    key: j
+
+  # Layout management
+  cycle-layout:
+    mod: mod1
+    key: space
+  toggle-float:
+    mod: mod1
+    key: t
+  toggle-fullscreen:
+    mod: mod1
+    key: f
+
+  # Window resizing
+  increase-main:
+    mod: mod1
+    key: period
+  decrease-main:
+    mod: mod1
+    key: comma
+
+  # Workspace management
+  select-tall-layout:
+    mod: mod1
+    key: a
+  select-wide-layout:
+    mod: mod1
+    key: s
+  select-column-layout:
+    mod: mod1
+    key: d
+
+  # Move windows to spaces (workspaces)
+  throw-space-1:
+    mod: mod2
+    key: '1'
+  throw-space-2:
+    mod: mod2
+    key: '2'
+  throw-space-3:
+    mod: mod2
+    key: '3'
+
+  # Reload config
+  relaunch-amethyst:
+    mod: mod2
+    key: r
+
+# Window margins and padding
+window-margins: true
+window-margin-size: 5
+smart-window-margins: true
+
+# Mouse behavior
+mouse-follows-focus: true
+focus-follows-mouse: false
+
+# Floating windows (apps that shouldn't be tiled)
+floating:
+  - com.apple.systempreferences
+  - com.apple.Calculator
+  - com.apple.Preview
+
+# HUD settings
+enables-layout-hud: true
+enables-layout-hud-on-space-change: true

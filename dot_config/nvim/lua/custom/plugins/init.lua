@@ -21,111 +21,6 @@ return {
     'nvim-treesitter/nvim-treesitter-context',
   },
   {
-    'kawre/leetcode.nvim',
-    -- build = ':TSUpdate html',
-    lazy = false,
-    dependencies = {
-      'nvim-telescope/telescope.nvim',
-      'nvim-lua/plenary.nvim', -- required by telescope
-      'MunifTanjim/nui.nvim',
-      '3rd/image.nvim',
-
-      -- optional
-      'nvim-treesitter/nvim-treesitter',
-      'rcarriga/nvim-notify',
-      'nvim-tree/nvim-web-devicons',
-    },
-    opts = {
-      ---@type string
-      arg = 'leetcode.nvim',
-
-      ---@type lc.lang
-      lang = 'python3',
-
-      cn = { -- leetcode.cn
-        enabled = false, ---@type boolean
-        translator = true, ---@type boolean
-        translate_problems = true, ---@type boolean
-      },
-
-      ---@type lc.storage
-      storage = {
-        home = vim.fn.stdpath 'data' .. '/leetcode',
-        cache = vim.fn.stdpath 'cache' .. '/leetcode',
-      },
-
-      ---@type table<string, boolean>
-      plugins = {
-        non_standalone = false,
-      },
-
-      ---@type boolean
-      logging = true,
-
-      injector = {}, ---@type table<lc.lang, lc.inject>
-
-      cache = {
-        update_interval = 60 * 60 * 24 * 7, ---@type integer 7 days
-      },
-
-      console = {
-        open_on_runcode = true, ---@type boolean
-
-        dir = 'row', ---@type lc.direction
-
-        size = { ---@type lc.size
-          width = '90%',
-          height = '75%',
-        },
-
-        result = {
-          size = '60%', ---@type lc.size
-        },
-
-        testcase = {
-          virt_text = true, ---@type boolean
-
-          size = '40%', ---@type lc.size
-        },
-      },
-
-      description = {
-        position = 'left', ---@type lc.position
-
-        width = '40%', ---@type lc.size
-
-        show_stats = true, ---@type boolean
-      },
-
-      hooks = {
-        ---@type fun()[]
-        ['enter'] = {},
-
-        ---@type fun(question: lc.ui.Question)[]
-        ['question_enter'] = {},
-
-        ---@type fun()[]
-        ['leave'] = {},
-      },
-
-      keys = {
-        toggle = { 'q' }, ---@type string|string[]
-        confirm = { '<CR>' }, ---@type string|string[]
-
-        reset_testcases = 'r', ---@type string
-        use_testcase = 'U', ---@type string
-        focus_testcases = 'H', ---@type string
-        focus_result = 'L', ---@type string
-      },
-
-      ---@type lc.highlights
-      theme = {},
-
-      ---@type boolean
-      image_support = true,
-    },
-  },
-  {
     'folke/trouble.nvim',
     opts = {}, -- for default options, refer to the configuration section for custom setup.
     cmd = 'Trouble',
@@ -163,57 +58,8 @@ return {
     },
   },
   {
-    'andymass/vim-matchup',
-  },
-  {
     'ThePrimeagen/harpoon',
     dependencies = { 'nvim-lua/plenary.nvim' },
-  },
-  {
-    'yetone/avante.nvim',
-    event = 'VeryLazy',
-    build = 'make',
-    opts = {
-      -- add any opts here
-      provider = 'openai',
-      openai = {
-        model = 'gpt-4o-mini',
-      },
-      mappings = {
-        diff = {
-          ours = '<leader>co',
-          theirs = '<leader>ct',
-          all_theirs = '<leader>ca',
-          both = '<leader>cb',
-          cursor = '<leader>cc',
-          next = '<leader>]x',
-          prev = '<leader>[x',
-        },
-      },
-    },
-    dependencies = {
-      'nvim-tree/nvim-web-devicons', -- or echasnovski/mini.icons
-      'stevearc/dressing.nvim',
-      'nvim-lua/plenary.nvim',
-      'MunifTanjim/nui.nvim',
-      --- The below is optional, make sure to setup it properly if you have lazy=true
-      {
-        'MeanderingProgrammer/render-markdown.nvim',
-        opts = {
-          file_types = { 'markdown', 'Avante' },
-        },
-        ft = { 'markdown', 'Avante' },
-      },
-    },
-  },
-  {
-    'boganworld/crackboard.nvim',
-    dependencies = { 'nvim-lua/plenary.nvim' },
-    config = function()
-      require('crackboard').setup {
-        session_key = os.getenv 'CRACKBOARD_API_KEY',
-      }
-    end,
   },
   {
     'NeogitOrg/neogit',
@@ -227,5 +73,100 @@ return {
       'echasnovski/mini.pick', -- optional
     },
     config = true,
+  },
+  {
+    'folke/zen-mode.nvim',
+  },
+  { 'wakatime/vim-wakatime', lazy = false },
+  {
+    'saghen/blink.cmp',
+    version = '*',
+    dependencies = 'rafamadriz/friendly-snippets',
+    opts = {
+      keymap = { preset = 'super-tab' }, -- more vscode-like experience
+      appearance = {
+        use_nvim_cmp_as_default = true,
+        nerd_font_variant = 'mono',
+      },
+      sources = {
+        default = { 'lsp', 'path', 'snippets', 'buffer' },
+      },
+      -- enabled = function()
+      --   return not vim.tbl_contains({ 'typr' }, vim.bo.filetype)
+      -- end,
+      fuzzy = {
+        implementation = 'prefer_rust_with_warning',
+        -- prebuilt_binaries = {
+        --   force_version = 'v0.9.0',
+        -- },
+      },
+    },
+  },
+  {
+    'epwalsh/obsidian.nvim',
+    version = '*',
+    lazy = true,
+    ft = 'markdown',
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+    },
+    opts = {
+      workspaces = {
+        {
+          name = 'serotonin',
+          path = '~/Obsidian/serotonin',
+        },
+      },
+      note_id_func = function(title)
+        -- If a title is provided (e.g., from [[My Note]]), use it, otherwise use a custom default
+        if title ~= nil then
+          -- Clean the title: replace spaces with hyphens, remove special chars, lowercase
+          return title:gsub(' ', '-'):gsub('[^A-Za-z0-9-]', ''):lower() .. '-' .. os.date '%Y%m%d'
+        else
+          -- Fallback for when no title is provided (e.g., empty [[link]])
+          -- Example: use a date-based name like "20250308-note"
+          return os.date '%Y%m%d' .. '-note'
+        end
+      end,
+    },
+  },
+  {
+    'nvimdev/dashboard-nvim',
+    event = 'VimEnter',
+    config = function()
+      require('dashboard').setup {
+        theme = 'doom',
+        config = {
+          header = {
+            '',
+            '',
+            '███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗',
+            '████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║',
+            '██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║',
+            '██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║',
+            '██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║',
+            '╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝',
+
+            '',
+            '',
+            '      |\\      _,,,---,,_            ',
+            "ZZZzz /,`.-'`'    -.  ;-;;,_        ",
+            "     |,4-  ) )-,_. ,\\ (  `'-'       ",
+            "    '---''(_/--'  `-'\\_)",
+            '',
+            '',
+          },
+          center = { { desc = 'It is never too late to be what you might have been - George Eliot' } },
+          footer = {},
+        },
+      }
+    end,
+    dependencies = { { 'nvim-tree/nvim-web-devicons' } },
+  },
+  {
+    'nvzone/typr',
+    dependencies = 'nvzone/volt',
+    opts = {},
+    cmd = { 'Typr', 'TyprStats' },
   },
 }
