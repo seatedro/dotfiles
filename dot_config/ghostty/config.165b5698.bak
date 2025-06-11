@@ -57,4 +57,3 @@ font-size = 16
 font-thicken = false
 
 selection-invert-fg-bg = true
-keybind = shift+enter=text:\n
