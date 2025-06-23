@@ -1,8 +1,8 @@
 minimum-contrast = 1.0
 
-theme = vesper
+theme = GruvboxDarkHard
 window-theme = system
-window-decoration = true
+window-decoration = none
 window-vsync = true
 window-colorspace = display-p3
 window-padding-x = 15
@@ -19,6 +19,8 @@ macos-option-as-alt = true
 
 cursor-style = block
 cursor-style-blink = false
+
+app-notifications = no-clipboard-copy
 
 clipboard-read = allow
 clipboard-write = allow
@@ -53,7 +55,7 @@ font-style-bold         = "Bold"
 font-family-italic      = "GeistMono Nerd Font"
 font-style-italic       = "Italic"
 
-font-size = 16
+font-size = 18
 font-thicken = false
 
 selection-invert-fg-bg = true
