@@ -1,0 +1,4 @@
+[[language]]
+name = "cpp"
+auto-format = true
+formatter = { command = "clang-format" }

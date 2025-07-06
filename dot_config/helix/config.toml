@@ -1,0 +1,10 @@
+theme = "gruvbox"
+
+[editor]
+line-number = "relative"
+auto-save = true
+auto-format = true
+
+[editor.file-picker]
+hidden = false
+

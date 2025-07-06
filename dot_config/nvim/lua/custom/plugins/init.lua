@@ -10,6 +10,7 @@ return {
     opts = {
       options = {
         diagnostics = 'nvim_lsp',
+        numbers = 'ordinal',
       },
     },
     config = function(_, opts)
@@ -91,6 +92,23 @@ return {
       sources = {
         default = { 'lsp', 'path', 'snippets', 'buffer' },
       },
+      signature = {
+        enabled = true,
+      },
+      completion = {
+        menu = {
+          draw = {
+            border = 'rounded',
+            padding = 2,
+          },
+        },
+        documentation = {
+          window = {
+            padding = 1,
+            border = 'rounded',
+          },
+        },
+      },
       -- enabled = function()
       --   return not vim.tbl_contains({ 'typr' }, vim.bo.filetype)
       -- end,
@@ -164,9 +182,13 @@ return {
     dependencies = { { 'nvim-tree/nvim-web-devicons' } },
   },
   {
-    'nvzone/typr',
-    dependencies = 'nvzone/volt',
+    'https://git.sr.ht/~whynothugo/lsp_lines.nvim',
+    config = function()
+      require('lsp_lines').setup()
+    end,
+  },
+  {
+    'j-hui/fidget.nvim',
     opts = {},
-    cmd = { 'Typr', 'TyprStats' },
   },
 }

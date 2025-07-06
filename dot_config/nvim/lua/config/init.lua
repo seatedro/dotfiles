@@ -1,4 +1,5 @@
 require 'config.keymaps'
+require('config.handlers').setup()
 
 -- This is needed to allow lsp to attach to .templ files
 vim.filetype.add { extension = { templ = 'templ' } }
@@ -60,3 +61,43 @@ vim.api.nvim_create_autocmd('TextYankPost', {
     end
   end,
 })
+
+local orig_util_open_floating_preview = vim.lsp.util.open_floating_preview
+---@diagnostic disable-next-line: duplicate-set-field
+function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
+  opts = opts or {}
+  opts.border = opts.border or 'rounded'
+  opts.wrap = true
+  opts.max_width = 120
+  opts.focusable = true
+
+  -- Call the original function first
+  local bufnr, winnr = orig_util_open_floating_preview(contents, syntax, opts, ...)
+
+  -- Create highlight groups with transparent background (one-time definition)
+  vim.api.nvim_set_hl(0, 'LspNormalFloat', { link = 'NormalFloat', bg = 'none' })
+  vim.api.nvim_set_hl(0, 'LspFloatBorder', { link = 'FloatBorder', bg = 'none' })
+
+  -- Apply the transparent highlights only to this LSP floating window
+  vim.api.nvim_win_set_option(winnr, 'winhighlight', 'NormalFloat:LspNormalFloat,FloatBorder:LspFloatBorder')
+
+  return bufnr, winnr
+end
+
+--[[
+-- Make LSP floating windows transparent
+-- Set once for the current colorscheme and whenever the colorscheme changes
+local function set_float_transparency()
+  -- Remove background colour for floating windows and their borders
+  vim.api.nvim_set_hl(0, 'NormalFloat', { bg = 'none' })
+  vim.api.nvim_set_hl(0, 'FloatBorder', { bg = 'none' })
+end
+
+-- Apply right now (for the colourscheme already loaded)
+set_float_transparency()
+
+-- Re-apply every time colorscheme changes
+vim.api.nvim_create_autocmd('ColorScheme', {
+  callback = set_float_transparency,
+})
+--]]

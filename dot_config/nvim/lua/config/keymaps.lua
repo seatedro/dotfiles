@@ -73,9 +73,10 @@ map('i', '<C-e>', '<End>', { desc = 'Move cursor to end of line' })
 map('i', '<C-b>', '<S-Left>', { desc = 'Move cursor to start of previous word' })
 map('i', '<C-f>', '<S-Right>', { desc = 'Move cursor to end of next word' })
 
+local bufferline = require 'bufferline'
 for i = 1, 9 do
   vim.keymap.set('n', string.format('<C-%d>', i), function()
-    vim.api.nvim_set_current_buf(vim.t.bufs[i])
+    bufferline.go_to(i)
   end)
 end
 
@@ -133,3 +134,6 @@ local neogit = require 'neogit'
 map('n', '<leader>gg', function()
   neogit.open()
 end, { desc = 'Open NeoGit' })
+
+-- lsp_lines
+map('n', '<leader>l', require('lsp_lines').toggle, { desc = 'Toggle lsp_lines' })
