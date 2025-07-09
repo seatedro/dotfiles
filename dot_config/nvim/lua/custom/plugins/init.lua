@@ -59,10 +59,6 @@ return {
     },
   },
   {
-    'ThePrimeagen/harpoon',
-    dependencies = { 'nvim-lua/plenary.nvim' },
-  },
-  {
     'NeogitOrg/neogit',
     dependencies = {
       'nvim-lua/plenary.nvim', -- required
@@ -95,20 +91,6 @@ return {
       signature = {
         enabled = true,
       },
-      completion = {
-        menu = {
-          draw = {
-            border = 'rounded',
-            padding = 2,
-          },
-        },
-        documentation = {
-          window = {
-            padding = 1,
-            border = 'rounded',
-          },
-        },
-      },
       -- enabled = function()
       --   return not vim.tbl_contains({ 'typr' }, vim.bo.filetype)
       -- end,
@@ -132,7 +114,7 @@ return {
       workspaces = {
         {
           name = 'serotonin',
-          path = '~/Obsidian/serotonin',
+          path = '~/Documents/serotonin',
         },
       },
       note_id_func = function(title)
@@ -189,6 +171,10 @@ return {
   },
   {
     'j-hui/fidget.nvim',
-    opts = {},
+    opts = {
+      notification = {
+        override_vim_notify = true,
+      },
+    },
   },
 }

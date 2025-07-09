@@ -101,3 +101,7 @@ vim.api.nvim_create_autocmd('ColorScheme', {
   callback = set_float_transparency,
 })
 --]]
+--
+
+vim.opt.shell = '/bin/zsh'
+vim.opt.autoread = true
