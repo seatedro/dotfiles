@@ -103,5 +103,13 @@ vim.api.nvim_create_autocmd('ColorScheme', {
 --]]
 --
 
-vim.opt.shell = '/bin/zsh'
+if vim.fn.has 'win32' == 1 or vim.fn.has 'win64' == 1 then
+  vim.opt.shell = 'powershell'
+  vim.opt.shellcmdflag = '-NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command'
+  vim.opt.shellquote = '"'
+  vim.opt.shellxquote = ''
+elseif vim.fn.has 'unix' == 1 then
+  vim.opt.shell = 'zsh'
+end
+
 vim.opt.autoread = true
