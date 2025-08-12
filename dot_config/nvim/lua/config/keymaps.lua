@@ -88,3 +88,17 @@ end, { desc = 'Open NeoGit' })
 
 -- lsp_lines
 map('n', '<leader>l', require('lsp_lines').toggle, { desc = 'Toggle lsp_lines' })
+
+local Terminal = require('toggleterm.terminal').Terminal
+local build_nu = Terminal:new {
+  cmd = 'nu build.nu',
+  hidden = true,
+  direction = 'horizontal',
+  close_on_exit = false,
+}
+
+function _build_nu_toggle()
+  build_nu:toggle()
+end
+
+vim.keymap.set('n', '<F1>', _build_nu_toggle, { noremap = true, silent = true })
