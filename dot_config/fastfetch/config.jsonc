@@ -4,7 +4,7 @@
     "title",
     "separator",
     "os",
-    "host",
+    // "host",
     "kernel",
     "uptime",
     "packages",
@@ -33,8 +33,8 @@
   ],
   "logo": {
     "type": "file-raw",
-    "source": "~/.config/fastfetch/goon.txt",
-    "preserveAspectRatio": true,
-    "width": 5
+    "source": "~/.config/fastfetch/nix.txt",
+    "preserveAspectRatio": false,
+    "width": 1
   }
 }

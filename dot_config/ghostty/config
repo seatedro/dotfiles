@@ -55,7 +55,7 @@ font-style-bold         = "Bold"
 font-family-italic      = "GeistMono Nerd Font"
 font-style-italic       = "Italic"
 
-font-size = 18
+font-size = 14
 font-thicken = false
 
 selection-invert-fg-bg = true

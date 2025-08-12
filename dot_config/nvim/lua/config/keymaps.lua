@@ -80,55 +80,6 @@ for i = 1, 9 do
   end)
 end
 
--- harpoon keymaps
-local harpoon = require 'harpoon'
-local mark = require 'harpoon.mark'
-local ui = require 'harpoon.ui'
-harpoon.setup()
-
-map('n', '<leader>za', function()
-  mark.add_file()
-end, { desc = 'Add harpoon' })
-map('n', '<leader>zl', function()
-  ui.toggle_quick_menu()
-end, { desc = 'Toggle harpoon quick menu' })
-
--- Leader-based harpoon file navigation
-map('n', '<leader>z1', function()
-  ui.nav_file(1)
-end)
-map('n', '<leader>z2', function()
-  ui.nav_file(2)
-end)
-map('n', '<leader>z3', function()
-  ui.nav_file(3)
-end)
-map('n', '<leader>z4', function()
-  ui.nav_file(4)
-end)
-
--- Alternative Ctrl-based harpoon file navigation
--- map('n', '<C-h>', function()
---   ui.nav_file(1)
--- end, { desc = 'Harpoon file 1' })
--- map('n', '<C-j>', function()
---   ui.nav_file(2)
--- end, { desc = 'Harpoon file 2' })
--- map('n', '<C-k>', function()
---   ui.nav_file(3)
--- end, { desc = 'Harpoon file 3' })
--- map('n', '<C-l>', function()
---   ui.nav_file(4)
--- end, { desc = 'Harpoon file 4' })
-
--- toggle next and previous harpoon
-map('n', '<leader>zn', function()
-  ui.nav_next()
-end, { desc = 'Next harpoon' })
-map('n', '<leader>zp', function()
-  ui.nav_prev()
-end, { desc = 'Previous harpoon' })
-
 -- neogit
 local neogit = require 'neogit'
 map('n', '<leader>gg', function()
