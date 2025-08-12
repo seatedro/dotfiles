@@ -177,4 +177,20 @@ return {
       },
     },
   },
+  {
+    'Isrothy/neominimap.nvim',
+    init = function()
+      vim.g.neominimap = {
+        exclude_filetypes = {
+          'qf',
+          'trouble',
+          'neo-tree',
+          'alpha',
+          'neominimap',
+          'neogit',
+          'dashboard',
+        },
+      }
+    end,
+  },
 }

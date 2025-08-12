@@ -113,3 +113,24 @@ elseif vim.fn.has 'unix' == 1 then
 end
 
 vim.opt.autoread = true
+
+local function is_float_window(win_id)
+  local win_config = vim.api.nvim_win_get_config(win_id)
+  return win_config.relative ~= ''
+end
+
+vim.g.neominimap = {
+  tab_filter = function(tab_id)
+    local win_list = vim.api.nvim_tabpage_list_wins(tab_id)
+    local exclude_ft = { 'qf', 'trouble', 'neo-tree', 'alpha', 'neominimap', 'neogit', 'dashboard' }
+    for _, win_id in ipairs(win_list) do
+      if not is_float_window(win_id) then
+        local bufnr = vim.api.nvim_win_get_buf(win_id)
+        if not vim.tbl_contains(exclude_ft, vim.bo[bufnr].filetype) then
+          return true
+        end
+      end
+    end
+    return false
+  end,
+}
