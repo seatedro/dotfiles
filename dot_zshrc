@@ -1,0 +1,122 @@
+if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+fi
+
+export PATH="$HOME/.nix-profile/bin:$PATH"
+export PATH="$PATH:$HOME/.bun/bin"
+
+export PNPM_HOME="/Users/ro/Library/pnpm"
+export PATH="$PNPM_HOME:$PATH"
+
+export EDITOR="nvim"
+export PAGER="less"
+
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt appendhistory
+setopt sharehistory
+setopt incappendhistory
+setopt hist_ignore_all_dups
+setopt hist_ignore_space
+setopt hist_reduce_blanks
+
+autoload -Uz compinit
+compinit
+
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*' use-cache on
+zstyle ':completion:*' cache-path ~/.zsh/cache
+zstyle ':completion:*:*:*:*:descriptions' format '%F{green}-- %d --%f'
+zstyle ':completion:*:*:*:*:corrections' format '%F{yellow}!- %d (errors: %e) -!%f'
+zstyle ':completion:*:messages' format ' %F{purple} -- %d --%f'
+zstyle ':completion:*:warnings' format ' %F{red}-- no matches found --%f'
+zstyle ':completion:*' group-name ''
+zstyle ':completion:*' verbose yes
+zstyle ':completion:*' special-dirs true
+zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#) ([0-9a-z-]#)*=01;34=0=01'
+zstyle ':completion:*:*:*:*:processes' command "ps -u $USER -o pid,user,comm -w -w"
+
+fpath=(~/.zsh/zsh-completions/src $fpath)
+
+source ~/.zsh/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+
+function zvm_after_init() {
+  eval "$(atuin init zsh)"
+  bindkey -s ^f "tmux-sessionizer\n"
+}
+
+source ~/.zsh/fzf-tab/fzf-tab.plugin.zsh
+
+zstyle ':fzf-tab:*' fzf-flags --height=80%
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
+zstyle ':fzf-tab:complete:*:*' fzf-preview 'echo $realpath'
+
+source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+
+source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+eval "$(zoxide init zsh)"
+
+
+eval "$(direnv hook zsh)"
+
+eval "$(carapace _carapace)"
+
+
+autoload -U colors && colors
+PROMPT='%F{cyan}%~%f %F{green}❯%f '
+
+if command -v yazi &> /dev/null && [ -z "$INSIDE_YAZI" ]; then
+  INSIDE_YAZI=1 yazi ~
+fi
+
+
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d '' cwd < "$tmp"
+	[ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && builtin cd -- "$cwd"
+	rm -f -- "$tmp"
+}
+
+alias vim=nvim
+alias kc=kubectl
+export PATH="$HOME/.local/bin:$PATH"
+
+gwt() {
+  local search_dirs=("$HOME/exa" "$HOME/personal")
+
+  local display_path=$(fd -H -u -t d '^\.git$' --max-depth 5 ${search_dirs[@]} 2>/dev/null | \
+    rg -v '/\.git/worktrees/' | \
+    sed 's|/\.git/$||' | \
+    sed "s|$HOME/||" | \
+    fzf --prompt="Select git repo: " --height=40% --reverse)
+
+  [[ -z "$display_path" ]] && return
+
+  local git_root="$HOME/$display_path"
+
+  local repo_name=$(basename "$git_root")
+
+  echo -n "Branch name: "
+  read branch_name
+  [[ -z "$branch_name" ]] && return
+
+  local kebab_branch=$(echo "$branch_name" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/--*/-/g' | tr '[:upper:]' '[:lower:]')
+  local worktree_dir="${git_root}/../${repo_name}-${kebab_branch}"
+
+  cd "$git_root"
+
+  if git show-ref --verify --quiet refs/heads/$branch_name; then
+    git worktree add "$worktree_dir" "$branch_name"
+  else
+    git worktree add -b "$branch_name" "$worktree_dir"
+  fi
+
+  cd "$worktree_dir"
+}
