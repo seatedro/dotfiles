@@ -1,0 +1,4 @@
+.config/opencode/node_modules
+.config/opencode/bun.lock
+.config/opencode/package.json
+.config/opencode/tsconfig.tsbuildinfo
