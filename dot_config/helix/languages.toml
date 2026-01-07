@@ -2,3 +2,7 @@
 name = "cpp"
 auto-format = true
 formatter = { command = "clang-format" }
+
+[language-server.qmlls]
+args = ["-E"]
+command = "qmlls"

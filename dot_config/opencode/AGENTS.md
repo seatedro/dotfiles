@@ -19,11 +19,13 @@ skip extended thinking for:
 - running commands
 </thinking_triggers>
 
-## knowledge files (load on-demand)
 
-reference these when relevant
+## important guidelines
 
-- **jujutsu**: @knowledge/jujutsu.md
+always use the following:
+
+- **jujutsu**: for version control and commits (always use `jj` instead of `git`, only fall back to git if jj is not initialized)
+- **glimpse**: for code search, especially when you know what function you are looking for, *always* use the glimpse tool instead of GrepTool.
 
 ## dependency handling
 

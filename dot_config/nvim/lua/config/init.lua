@@ -134,3 +134,6 @@ vim.g.neominimap = {
     return false
   end,
 }
+
+vim.opt.expandtab = true
+vim.o.exrc = true

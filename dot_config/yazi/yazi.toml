@@ -1,0 +1,26 @@
+[opener]
+edit = [
+	{ run = 'nvim %s', block = true }
+]
+play = [
+	{ run = 'mpv %s', orphan = true }
+]
+image = [
+	{ run = 'feh %s', orphan = true }
+]
+set-wallpaper = [
+	{ run = 'swww img %s1', desc = "Set as wallpaper" }
+]
+open = [
+	{ run = 'xdg-open %s', orphan = true }
+]
+
+[open]
+rules = [
+	{ url = "*.md", use = "edit" },
+	{ mime = "text/*", use = "edit" },
+	{ mime = "image/*", use = ["image", "set-wallpaper", "open"] },
+	{ mime = "video/*", use = "play" },
+	{ mime = "audio/*", use = "play" },
+	{ url = "*", use = "open" }
+]

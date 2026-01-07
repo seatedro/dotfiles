@@ -1,0 +1,69 @@
+# Navigation
+[[mgr.prepend_keymap]]
+on  = ["g", "o"]
+run  = 'cd ~/Documents/serotonin'
+desc = "Go to obsidian vault"
+
+[[mgr.prepend_keymap]]
+on  = ["g", "h"]
+run  = 'cd ~'
+desc = "Go to home"
+
+[[mgr.prepend_keymap]]
+on  = ["g", "c"]
+run  = 'cd ~/.config'
+desc = "Go to config"
+
+[[mgr.prepend_keymap]]
+on  = ["g", "n"]
+run  = 'cd /nix-config'
+desc = "Go to nix-config"
+
+[[mgr.prepend_keymap]]
+on  = ["g", "a"]
+run  = 'shell "opencode" --block'
+desc = "Open opencode"
+
+# Git/jj
+[[mgr.prepend_keymap]]
+on  = ["g", "g"]
+run  = 'shell "jjui" --block'
+desc = "Open jjui"
+
+[[mgr.prepend_keymap]]
+on  = ["g", "j"]
+run  = 'shell "jjui" --block'
+desc = "Open jjui"
+
+# File operations
+[[mgr.prepend_keymap]]
+on  = ["c", "x"]
+run  = 'shell "chmod +x $@"'
+desc = "Make executable"
+
+[[mgr.prepend_keymap]]
+on  = ["E", "x"]
+run  = 'shell "ouch decompress $@" --block'
+desc = "Extract archive"
+
+[[mgr.prepend_keymap]]
+on  = ["E", "c"]
+run  = 'shell "ouch compress $@ archive.zip" --block'
+desc = "Compress to zip"
+
+# Editor/shell
+[[mgr.prepend_keymap]]
+on  = "e"
+run  = 'shell "if [ -f .envrc ]; then direnv allow && direnv exec . $EDITOR .; else $EDITOR .; fi" --block'
+desc = "Enable direnv and open editor"
+
+[[mgr.prepend_keymap]]
+on  = ";"
+run  = 'shell "$SHELL" --block'
+desc = "Open $SHELL here"
+
+[[mgr.prepend_keymap]]
+on  = "y"
+run = [ 'shell -- for path in "$@"; do echo "file://$path"; done | wl-copy -t text/uri-list', "yank" ]
+desc = "Yank and copy to system clipboard"
+

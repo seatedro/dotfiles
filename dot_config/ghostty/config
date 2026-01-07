@@ -1,6 +1,9 @@
 minimum-contrast = 1.0
 
-theme = GruvboxDarkHard
+# Load theme from separate file (managed by darkman)
+config-file = ?theme
+
+# Default theme (will be overridden by theme file if it exists)
 window-theme = system
 window-decoration = auto
 window-vsync = true
@@ -60,3 +63,5 @@ font-thicken = false
 
 selection-invert-fg-bg = true
 keybind = shift+enter=text:\n
+keybind = global:super+grave_accent=toggle_quick_terminal
+quick-terminal-position = top

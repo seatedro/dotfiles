@@ -670,7 +670,7 @@ require('lazy').setup({
         if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
           return
         end
-        local disable_filetypes = { c = true, cpp = true }
+        local disable_filetypes = {}
         return {
           timeout_ms = 500,
           lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
@@ -683,6 +683,8 @@ require('lazy').setup({
         svelte = { 'prettierd', 'prettier' },
         css = { 'prettierd', 'prettier' },
         nix = { 'nixfmt' },
+        c = { 'clang-format' },
+        cpp = { 'clang-format' },
       },
     },
   },
@@ -691,22 +693,37 @@ require('lazy').setup({
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'rebelot/kanagawa.nvim',
-    name = 'kanagawa',
+    'ellisonleao/gruvbox.nvim',
+    name = 'gruvbox',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     init = function()
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'kanagawa-dragon'
-      -- vim.cmd.colorscheme 'kanagawa-dragon'
-      vim.o.background = 'dark'
+      -- Check darkman mode and set theme accordingly
+      local handle = io.popen('darkman get 2>/dev/null')
+      local mode = handle and handle:read('*a'):gsub('%s+', '') or 'dark'
+      if handle then handle:close() end
+      
+      if mode == 'light' then
+        vim.cmd.colorscheme 'rose-pine-dawn'
+        vim.o.background = 'light'
+      else
+        vim.cmd.colorscheme 'gruvbox'
+        vim.o.background = 'dark'
+      end
 
       -- You can configure highlights by doing something like:
       vim.cmd.hi 'Comment gui=none'
     end,
     opts = {
       contrast = 'hard',
+    },
+  },
+  
+  {
+    'rose-pine/neovim',
+    name = 'rose-pine',
+    priority = 1000,
+    opts = {
+      variant = 'dawn',
     },
   },
 

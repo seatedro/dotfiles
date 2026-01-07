@@ -78,9 +78,13 @@ return {
   {
     'saghen/blink.cmp',
     version = '*',
-    dependencies = 'rafamadriz/friendly-snippets',
+    dependencies = {
+      'rafamadriz/friendly-snippets',
+      { 'L3MON4D3/LuaSnip', version = 'v2.*' },
+    },
     opts = {
-      keymap = { preset = 'super-tab' }, -- more vscode-like experience
+      snippets = { preset = 'luasnip' },
+      keymap = { preset = 'super-tab' },
       appearance = {
         use_nvim_cmp_as_default = true,
         nerd_font_variant = 'mono',
@@ -88,18 +92,8 @@ return {
       sources = {
         default = { 'lsp', 'path', 'snippets', 'buffer' },
       },
-      signature = {
-        enabled = true,
-      },
-      -- enabled = function()
-      --   return not vim.tbl_contains({ 'typr' }, vim.bo.filetype)
-      -- end,
-      fuzzy = {
-        implementation = 'prefer_rust_with_warning',
-        -- prebuilt_binaries = {
-        --   force_version = 'v0.9.0',
-        -- },
-      },
+      signature = { enabled = true },
+      fuzzy = { implementation = 'prefer_rust_with_warning' },
     },
   },
   {
@@ -178,27 +172,11 @@ return {
     },
   },
   {
-    'Isrothy/neominimap.nvim',
-    init = function()
-      vim.g.neominimap = {
-        exclude_filetypes = {
-          'qf',
-          'trouble',
-          'neo-tree',
-          'alpha',
-          'neominimap',
-          'neogit',
-          'dashboard',
-        },
-      }
-    end,
-  },
-  {
     'akinsho/toggleterm.nvim',
-    version = '*',
-    config = true,
     opts = {
-      shade_terminals = true,
+      open_mapping = [[<C-`>]],
+      direction = 'horizontal',
+      size = 15,
     },
   },
 }
