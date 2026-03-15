@@ -17,6 +17,12 @@
       },
     },
   },
+  "permission": {
+    "external_directory": {
+      "/home/ro/code/ember-refs/**": "allow",
+      "*": "ask"
+    }
+  },
   "agent": {
     "write": {
       "mode": "primary",
