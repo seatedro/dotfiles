@@ -5,7 +5,6 @@ import { Type } from "typebox";
 const ORACLE_MODEL = "openai-codex/gpt-5.5";
 const ORACLE_THINKING = "xhigh";
 const ORACLE_TOOLS = "read,grep,find,ls";
-const ORACLE_TIMEOUT_MS = 180_000;
 
 function buildOraclePrompt(question: string, extraContext?: string): string {
   return `You are Oracle, a read-only analysis subagent.
@@ -65,7 +64,7 @@ const askOracleEffect = (
             "-p",
             buildOraclePrompt(trimmed, extraContext),
           ],
-          { cwd: ctx.cwd, signal: ctx.signal, timeout: ORACLE_TIMEOUT_MS },
+          { cwd: ctx.cwd, signal: ctx.signal },
         ),
       catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
     }),

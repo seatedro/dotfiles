@@ -4,7 +4,6 @@ import { Type } from "typebox";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
 const CLAUDE_TOOLS_LABEL = "all Claude Code tools";
-const CLAUDE_TIMEOUT_MS = 180_000;
 const DEFAULT_MAX_TURNS = 8;
 const DEFAULT_EFFORT = "xhigh";
 
@@ -66,7 +65,6 @@ async function collectClaudeResult(
   maxTurns: number,
 ): Promise<AgentToolResult<ClaudeDetails>> {
   const abortController = makeAbortController(ctx.signal);
-  const timeout = setTimeout(() => abortController.abort(new Error("claude timed out")), CLAUDE_TIMEOUT_MS);
 
   let sessionId: string | undefined;
   let model: string | undefined;
@@ -110,8 +108,6 @@ async function collectClaudeResult(
         result: resultText || lastAssistantText,
       },
     };
-  } finally {
-    clearTimeout(timeout);
   }
 
   const finalText = resultText || lastAssistantText || "Claude returned no output.";
