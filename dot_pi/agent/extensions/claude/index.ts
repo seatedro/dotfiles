@@ -1,4 +1,5 @@
 import type { AgentToolResult, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Effect, pipe } from "effect";
 import { Type } from "typebox";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 
@@ -28,15 +29,25 @@ Rules:
 ${extraContext ? `Additional context from caller:\n${extraContext}\n\n` : ""}Question:\n${question}`;
 }
 
-function textFromAssistantMessage(message: any): string {
-  const content = message?.message?.content;
+const asRecord = (value: unknown): Record<string, unknown> | undefined =>
+  typeof value === "object" && value !== null ? (value as Record<string, unknown>) : undefined;
+
+function textFromAssistantMessage(message: unknown): string {
+  const outer = asRecord(message);
+  const inner = asRecord(outer?.message);
+  const content = inner?.content;
   if (!Array.isArray(content)) return "";
   return content
-    .map((part) => (part?.type === "text" && typeof part.text === "string" ? part.text : ""))
+    .map((part) => {
+      const block = asRecord(part);
+      return block?.type === "text" && typeof block.text === "string" ? block.text : "";
+    })
     .filter(Boolean)
     .join("\n")
     .trim();
 }
+
+const errorMessage = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 
 function makeAbortController(signal?: AbortSignal): AbortController {
   const controller = new AbortController();
@@ -48,21 +59,12 @@ function makeAbortController(signal?: AbortSignal): AbortController {
   return controller;
 }
 
-async function askClaude(
+async function collectClaudeResult(
   ctx: ExtensionContext,
-  question: string,
-  extraContext?: string,
-  maxTurns = DEFAULT_MAX_TURNS,
+  trimmed: string,
+  extraContext: string | undefined,
+  maxTurns: number,
 ): Promise<AgentToolResult<ClaudeDetails>> {
-  const trimmed = question.trim();
-  if (!trimmed) {
-    return {
-      isError: true,
-      content: [{ type: "text", text: "claude question must not be empty" }],
-      details: { effort: DEFAULT_EFFORT, tools: CLAUDE_TOOLS_LABEL, permissionMode: "auto", result: "" },
-    };
-  }
-
   const abortController = makeAbortController(ctx.signal);
   const timeout = setTimeout(() => abortController.abort(new Error("claude timed out")), CLAUDE_TIMEOUT_MS);
 
@@ -82,22 +84,23 @@ async function askClaude(
         permissionMode: "auto",
       },
     })) {
-      if ((message as any).type === "system" && (message as any).subtype === "init") {
-        sessionId = (message as any).session_id;
-        model = (message as any).model;
-      } else if ((message as any).type === "assistant") {
+      const record = asRecord(message);
+      const nestedMessage = asRecord(record?.message);
+      if (record?.type === "system" && record.subtype === "init") {
+        sessionId = typeof record.session_id === "string" ? record.session_id : sessionId;
+        model = typeof record.model === "string" ? record.model : model;
+      } else if (record?.type === "assistant") {
         lastAssistantText = textFromAssistantMessage(message) || lastAssistantText;
-        model = (message as any).message?.model || model;
-      } else if (typeof (message as any).result === "string") {
-        resultText = (message as any).result.trim();
-        sessionId = (message as any).session_id || sessionId;
+        model = typeof nestedMessage?.model === "string" ? nestedMessage.model : model;
+      } else if (typeof record?.result === "string") {
+        resultText = record.result.trim();
+        sessionId = typeof record.session_id === "string" ? record.session_id : sessionId;
       }
     }
-  } catch (error: any) {
-    const text = error?.message || String(error);
+  } catch (error) {
     return {
       isError: true,
-      content: [{ type: "text", text: `Claude failed: ${text}` }],
+      content: [{ type: "text", text: `Claude failed: ${errorMessage(error)}` }],
       details: {
         model,
         effort: DEFAULT_EFFORT,
@@ -123,6 +126,44 @@ async function askClaude(
       result: finalText,
     },
   };
+}
+
+const emptyClaudeQuestion = (): AgentToolResult<ClaudeDetails> => ({
+  isError: true,
+  content: [{ type: "text", text: "claude question must not be empty" }],
+  details: { effort: DEFAULT_EFFORT, tools: CLAUDE_TOOLS_LABEL, permissionMode: "auto", result: "" },
+});
+
+const askClaudeEffect = (
+  ctx: ExtensionContext,
+  question: string,
+  extraContext?: string,
+  maxTurns = DEFAULT_MAX_TURNS,
+): Effect.Effect<AgentToolResult<ClaudeDetails>, never> => {
+  const trimmed = question.trim();
+  if (!trimmed) return Effect.succeed(emptyClaudeQuestion());
+  return pipe(
+    Effect.tryPromise({
+      try: () => collectClaudeResult(ctx, trimmed, extraContext, maxTurns),
+      catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+    }),
+    Effect.catchAll((error) =>
+      Effect.succeed({
+        isError: true,
+        content: [{ type: "text", text: `Claude failed: ${error.message}` }],
+        details: { effort: DEFAULT_EFFORT, tools: CLAUDE_TOOLS_LABEL, permissionMode: "auto", result: "" },
+      }),
+    ),
+  );
+};
+
+function askClaude(
+  ctx: ExtensionContext,
+  question: string,
+  extraContext?: string,
+  maxTurns = DEFAULT_MAX_TURNS,
+): Promise<AgentToolResult<ClaudeDetails>> {
+  return Effect.runPromise(askClaudeEffect(ctx, question, extraContext, maxTurns));
 }
 
 export default function claude(pi: ExtensionAPI): void {

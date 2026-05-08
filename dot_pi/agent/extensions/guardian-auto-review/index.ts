@@ -1,5 +1,6 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Effect, pipe } from "effect";
 
 const REVIEW_TIMEOUT_MS = 90_000;
 const PREFERRED_REVIEW_MODEL = "openai-codex/codex-auto-review";
@@ -280,7 +281,7 @@ export default function guardianAutoReview(pi: ExtensionAPI): void {
     consecutiveDenialsThisTurn = 0;
   }
 
-  async function reviewAction(ctx: ExtensionContext, toolName: string, input: unknown): Promise<GuardianDecision> {
+  async function collectReviewDecision(ctx: ExtensionContext, toolName: string, input: unknown): Promise<GuardianDecision> {
     const fingerprint = actionFingerprint(toolName, input);
     const approvedAction = approvedOnce.get(fingerprint);
     const prompt = buildGuardianPrompt(ctx, toolName, input, approvedAction);
@@ -339,6 +340,12 @@ export default function guardianAutoReview(pi: ExtensionAPI): void {
     throw new Error(firstFailure || "reviewer failed before returning a decision");
   }
 
+  const reviewAction = (ctx: ExtensionContext, toolName: string, input: unknown): Effect.Effect<GuardianDecision, Error> =>
+    Effect.tryPromise({
+      try: () => collectReviewDecision(ctx, toolName, input),
+      catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+    });
+
   function setEnabled(value: boolean, ctx: ExtensionContext): void {
     enabled = value;
     ctx.ui.notify(`Guardian auto-review ${enabled ? "enabled" : "disabled"}.`, "info");
@@ -356,9 +363,7 @@ export default function guardianAutoReview(pi: ExtensionAPI): void {
 
   pi.registerCommand("guardian-auto-review", {
     description: "Toggle guardian auto-review for risky tool calls",
-    handler: async (_args, ctx) => {
-      setEnabled(!enabled, ctx);
-    },
+    handler: (_args, ctx) => Effect.runPromise(Effect.sync(() => setEnabled(!enabled, ctx))),
   });
 
   pi.registerCommand("auto-review", {
@@ -396,65 +401,82 @@ export default function guardianAutoReview(pi: ExtensionAPI): void {
     },
   });
 
-  pi.on("tool_call", async (event, ctx) => {
+  pi.on("tool_call", (event, ctx) => {
     if (!enabled || reviewing) return;
     if (!isRiskyToolCall(event.toolName, event.input)) return;
 
-    reviewing = true;
-    updateStatus(ctx);
-    try {
-      const decision = await reviewAction(ctx, event.toolName, event.input);
-      reviewing = false;
+    return Effect.runPromise(
+      pipe(
+        Effect.sync(() => {
+          reviewing = true;
+          updateStatus(ctx);
+        }),
+        Effect.zipRight(reviewAction(ctx, event.toolName, event.input)),
+        Effect.map((decision) => {
+          reviewing = false;
 
-      if (decision.outcome === "approve" && decision.risk_level === "low") {
-        recordNonDenial();
+          if (decision.outcome === "approve" && decision.risk_level === "low") {
+            recordNonDenial();
+            updateStatus(ctx);
+            persist();
+            return undefined;
+          }
+
+          const denial = recordDenial(ctx, event.toolName, event.input, decision);
+          updateStatus(ctx);
+          persist();
+          return {
+            block: true,
+            reason: `Guardian auto-review denied this ${event.toolName} call (${decision.risk_level}, ${decision.user_authorization} authorization): ${decision.rationale}\nDenial id: ${denial.id}. Use /auto-review to approve one retry of a recent denial.`,
+          };
+        }),
+        Effect.catchAll((error) =>
+          Effect.sync(() => {
+            reviewing = false;
+            const decision: GuardianDecision = {
+              outcome: "deny",
+              risk_level: "high",
+              user_authorization: "unclear",
+              rationale: error.message,
+            };
+            const denial = recordDenial(ctx, event.toolName, event.input, decision);
+            updateStatus(ctx);
+            persist();
+            return {
+              block: true,
+              reason: `Guardian auto-review failed closed for ${event.toolName}: ${decision.rationale}\nDenial id: ${denial.id}. Use /auto-review to approve one retry of a recent denial.`,
+            };
+          }),
+        ),
+      ),
+    );
+  });
+
+  pi.on("agent_start", () =>
+    Effect.runSync(
+      Effect.sync(() => {
+        consecutiveDenialsThisTurn = 0;
+        totalDenialsThisTurn = 0;
+      }),
+    ),
+  );
+
+  pi.on("session_start", (_event, ctx) =>
+    Effect.runSync(
+      Effect.sync(() => {
+        const stateEntry = ctx.sessionManager
+          .getEntries()
+          .filter((entry: { type: string; customType?: string }) => entry.type === "custom" && entry.customType === "guardian-auto-review")
+          .pop() as { data?: GuardianAutoReviewState } | undefined;
+
+        if (stateEntry?.data) {
+          enabled = stateEntry.data.enabled ?? false;
+          recentDenials = stateEntry.data.recentDenials ?? [];
+          approvedOnce = new Map((stateEntry.data.approvedOnce ?? []).map((item) => [item.fingerprint, item]));
+        }
+        if (pi.getFlag("guardian-auto-review") === true) enabled = true;
         updateStatus(ctx);
-        persist();
-        return;
-      }
-
-      const denial = recordDenial(ctx, event.toolName, event.input, decision);
-      updateStatus(ctx);
-      persist();
-      return {
-        block: true,
-        reason: `Guardian auto-review denied this ${event.toolName} call (${decision.risk_level}, ${decision.user_authorization} authorization): ${decision.rationale}\nDenial id: ${denial.id}. Use /auto-review to approve one retry of a recent denial.`,
-      };
-    } catch (error) {
-      reviewing = false;
-      const decision: GuardianDecision = {
-        outcome: "deny",
-        risk_level: "high",
-        user_authorization: "unclear",
-        rationale: error instanceof Error ? error.message : String(error),
-      };
-      const denial = recordDenial(ctx, event.toolName, event.input, decision);
-      updateStatus(ctx);
-      persist();
-      return {
-        block: true,
-        reason: `Guardian auto-review failed closed for ${event.toolName}: ${decision.rationale}\nDenial id: ${denial.id}. Use /auto-review to approve one retry of a recent denial.`,
-      };
-    }
-  });
-
-  pi.on("agent_start", async () => {
-    consecutiveDenialsThisTurn = 0;
-    totalDenialsThisTurn = 0;
-  });
-
-  pi.on("session_start", async (_event, ctx) => {
-    const stateEntry = ctx.sessionManager
-      .getEntries()
-      .filter((entry: { type: string; customType?: string }) => entry.type === "custom" && entry.customType === "guardian-auto-review")
-      .pop() as { data?: GuardianAutoReviewState } | undefined;
-
-    if (stateEntry?.data) {
-      enabled = stateEntry.data.enabled ?? false;
-      recentDenials = stateEntry.data.recentDenials ?? [];
-      approvedOnce = new Map((stateEntry.data.approvedOnce ?? []).map((item) => [item.fingerprint, item]));
-    }
-    if (pi.getFlag("guardian-auto-review") === true) enabled = true;
-    updateStatus(ctx);
-  });
+      }),
+    ),
+  );
 }

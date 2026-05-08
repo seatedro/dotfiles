@@ -3,6 +3,7 @@ import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Effect } from "effect";
 
 const MAX_OSC_BYTES = 30 * 1024 * 1024;
 
@@ -95,12 +96,15 @@ export default function oscImagePaste(pi: ExtensionAPI) {
 
   pi.registerCommand("osc-image-paste-help", {
     description: "Show local helper instructions for image paste over SSH",
-    handler: async (_args, ctx) => {
-      ctx.ui.notify(
-        `Local helper created at ~/.pi/agent/helpers/pi-image-paste-local on this machine. Copy that script to your LOCAL computer, run it locally, then paste into this SSH/Pi terminal. It sends OSC 777 pi-image-paste data that this extension receives.`,
-        "info",
-      );
-    },
+    handler: (_args, ctx) =>
+      Effect.runPromise(
+        Effect.sync(() =>
+          ctx.ui.notify(
+            `Local helper created at ~/.pi/agent/helpers/pi-image-paste-local on this machine. Copy that script to your LOCAL computer, run it locally, then paste into this SSH/Pi terminal. It sends OSC 777 pi-image-paste data that this extension receives.`,
+            "info",
+          ),
+        ),
+      ),
   });
 
   pi.on("session_start", (_event, ctx) => {
@@ -141,7 +145,7 @@ export default function oscImagePaste(pi: ExtensionAPI) {
         const ext = extensionForMime(parsed.mime);
         const fileName = safeName(parsed.name, ext);
         const filePath = join(tmpdir(), fileName);
-        writeFileSync(filePath, parsed.bytes);
+        Effect.runSync(Effect.sync(() => writeFileSync(filePath, parsed.bytes)));
         ctx.ui.pasteToEditor(`${filePath} `);
         wrote += 1;
       }

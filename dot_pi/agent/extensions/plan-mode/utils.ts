@@ -3,6 +3,8 @@
  * Extracted for testability.
  */
 
+import { Effect } from "effect";
+
 // Destructive commands blocked in plan mode
 const DESTRUCTIVE_PATTERNS = [
 	/\brm\b/i,
@@ -94,10 +96,15 @@ const SAFE_PATTERNS = [
 	/^\s*eza\b/,
 ];
 
+export const isSafeCommandEffect = (command: string): Effect.Effect<boolean> =>
+	Effect.sync(() => {
+		const isDestructive = DESTRUCTIVE_PATTERNS.some((p) => p.test(command));
+		const isSafe = SAFE_PATTERNS.some((p) => p.test(command));
+		return !isDestructive && isSafe;
+	});
+
 export function isSafeCommand(command: string): boolean {
-	const isDestructive = DESTRUCTIVE_PATTERNS.some((p) => p.test(command));
-	const isSafe = SAFE_PATTERNS.some((p) => p.test(command));
-	return !isDestructive && isSafe;
+	return Effect.runSync(isSafeCommandEffect(command));
 }
 
 export interface TodoItem {
@@ -126,8 +133,9 @@ export function cleanStepText(text: string): string {
 	return cleaned;
 }
 
-export function extractTodoItems(message: string): TodoItem[] {
-	const items: TodoItem[] = [];
+export const extractTodoItemsEffect = (message: string): Effect.Effect<TodoItem[]> =>
+	Effect.sync(() => {
+		const items: TodoItem[] = [];
 	const headerMatch = message.match(/\*{0,2}Plan:\*{0,2}\s*\n/i);
 	if (!headerMatch) return items;
 
@@ -146,7 +154,11 @@ export function extractTodoItems(message: string): TodoItem[] {
 			}
 		}
 	}
-	return items;
+		return items;
+	});
+
+export function extractTodoItems(message: string): TodoItem[] {
+	return Effect.runSync(extractTodoItemsEffect(message));
 }
 
 export function extractDoneSteps(message: string): number[] {
@@ -158,11 +170,16 @@ export function extractDoneSteps(message: string): number[] {
 	return steps;
 }
 
+export const markCompletedStepsEffect = (text: string, items: TodoItem[]): Effect.Effect<number> =>
+	Effect.sync(() => {
+		const doneSteps = extractDoneSteps(text);
+		for (const step of doneSteps) {
+			const item = items.find((t) => t.step === step);
+			if (item) item.completed = true;
+		}
+		return doneSteps.length;
+	});
+
 export function markCompletedSteps(text: string, items: TodoItem[]): number {
-	const doneSteps = extractDoneSteps(text);
-	for (const step of doneSteps) {
-		const item = items.find((t) => t.step === step);
-		if (item) item.completed = true;
-	}
-	return doneSteps.length;
+	return Effect.runSync(markCompletedStepsEffect(text, items));
 }

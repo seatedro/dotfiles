@@ -1,6 +1,7 @@
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage, TextContent } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Effect } from "effect";
 import { extractTodoItems, isSafeCommand, markCompletedSteps, type TodoItem } from "./utils.js";
 
 const PREFERRED_PLAN_TOOLS = ["read", "bash", "grep", "find", "ls", "questionnaire", "question"];
@@ -150,56 +151,73 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 
   pi.registerCommand("plan", {
     description: "Toggle plan mode (read-only exploration)",
-    handler: async (_args, ctx) => {
-      if (planModeEnabled || executionMode) exitPlanMode(ctx);
-      else enterPlanMode(ctx);
-    },
+    handler: (_args, ctx) =>
+      Effect.runPromise(
+        Effect.sync(() => {
+          if (planModeEnabled || executionMode) exitPlanMode(ctx);
+          else enterPlanMode(ctx);
+        }),
+      ),
   });
 
   pi.registerCommand("todos", {
     description: "Show current plan progress",
-    handler: async (_args, ctx) => {
-      if (todoItems.length === 0) {
-        ctx.ui.notify("No plan todos yet. Enable /plan and ask for a numbered Plan: first.", "info");
-        return;
-      }
-      const list = todoItems.map((item) => `${item.step}. ${item.completed ? "✓" : "○"} ${item.text}`).join("\n");
-      ctx.ui.notify(`Plan Progress:\n${list}`, "info");
-    },
+    handler: (_args, ctx) =>
+      Effect.runPromise(
+        Effect.sync(() => {
+          if (todoItems.length === 0) {
+            ctx.ui.notify("No plan todos yet. Enable /plan and ask for a numbered Plan: first.", "info");
+            return;
+          }
+          const list = todoItems.map((item) => `${item.step}. ${item.completed ? "✓" : "○"} ${item.text}`).join("\n");
+          ctx.ui.notify(`Plan Progress:\n${list}`, "info");
+        }),
+      ),
   });
 
   pi.registerShortcut("ctrl+alt+p", {
     description: "Toggle plan mode",
-    handler: async (ctx) => {
-      if (planModeEnabled || executionMode) exitPlanMode(ctx);
-      else enterPlanMode(ctx);
-    },
+    handler: (ctx) =>
+      Effect.runPromise(
+        Effect.sync(() => {
+          if (planModeEnabled || executionMode) exitPlanMode(ctx);
+          else enterPlanMode(ctx);
+        }),
+      ),
   });
 
-  pi.on("tool_call", async (event) => {
-    if (!planModeEnabled || event.toolName !== "bash") return;
+  pi.on("tool_call", (event) =>
+    Effect.runPromise(
+      Effect.sync(() => {
+        if (!planModeEnabled || event.toolName !== "bash") return;
 
-    const command = String((event.input as { command?: unknown }).command ?? "");
-    if (!isSafeCommand(command)) {
-      return {
-        block: true,
-        reason: `Plan mode blocked this bash command because it is not read-only/allowlisted. Disable plan mode with /plan if you really want to run it.\nCommand: ${command}`,
-      };
-    }
-  });
-
-  pi.on("context", async (event) => {
-    if (planModeEnabled || executionMode) return;
-
-    return {
-      messages: event.messages.filter((message) => {
-        const maybeCustom = message as AgentMessage & { customType?: string };
-        return maybeCustom.customType !== "plan-mode-context" && maybeCustom.customType !== "plan-execution-context";
+        const command = String((event.input as { command?: unknown }).command ?? "");
+        if (!isSafeCommand(command)) {
+          return {
+            block: true,
+            reason: `Plan mode blocked this bash command because it is not read-only/allowlisted. Disable plan mode with /plan if you really want to run it.\nCommand: ${command}`,
+          };
+        }
       }),
-    };
-  });
+    ),
+  );
 
-  pi.on("before_agent_start", async () => {
+  pi.on("context", (event) =>
+    Effect.runPromise(
+      Effect.sync(() => {
+        if (planModeEnabled || executionMode) return;
+
+        return {
+          messages: event.messages.filter((message) => {
+            const maybeCustom = message as AgentMessage & { customType?: string };
+            return maybeCustom.customType !== "plan-mode-context" && maybeCustom.customType !== "plan-execution-context";
+          }),
+        };
+      }),
+    ),
+  );
+
+  pi.on("before_agent_start", () => Effect.runPromise(Effect.sync(() => {
     if (planModeEnabled) {
       const tools = availablePlanTools();
       const questionInstruction = tools.includes("questionnaire") || tools.includes("question")
@@ -225,9 +243,9 @@ export default function planModeExtension(pi: ExtensionAPI): void {
         },
       };
     }
-  });
+  })));
 
-  pi.on("turn_end", async (event, ctx) => {
+  pi.on("turn_end", (event, ctx) => Effect.runPromise(Effect.sync(() => {
     if (!executionMode || todoItems.length === 0) return;
     if (!isAssistantMessage(event.message)) return;
 
@@ -235,7 +253,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       updateStatus(ctx);
     }
     persistState();
-  });
+  })));
 
   pi.on("agent_end", async (event, ctx) => {
     if (executionMode && todoItems.length > 0) {
@@ -293,7 +311,7 @@ export default function planModeExtension(pi: ExtensionAPI): void {
     }
   });
 
-  pi.on("session_start", async (_event, ctx) => {
+  pi.on("session_start", (_event, ctx) => Effect.runPromise(Effect.sync(() => {
     const entries = ctx.sessionManager.getEntries();
     const stateEntry = entries
       .filter((entry: { type: string; customType?: string }) => entry.type === "custom" && entry.customType === "plan-mode")
@@ -336,5 +354,5 @@ export default function planModeExtension(pi: ExtensionAPI): void {
       pi.setActiveTools(availablePlanTools());
     }
     updateStatus(ctx);
-  });
+  })));
 }

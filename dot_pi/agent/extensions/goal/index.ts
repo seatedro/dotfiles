@@ -1,4 +1,5 @@
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Effect } from "effect";
 import { Type } from "typebox";
 
 type GoalStatus = "active" | "paused" | "budget_limited" | "complete";
@@ -302,25 +303,28 @@ export default function goalExtension(pi: ExtensionAPI): void {
     );
   }
 
-  async function maybeContinue(ctx: ExtensionContext): Promise<void> {
-    if (!goal || goal.status !== "active" || continuationQueued) return;
-    if (ctx.hasPendingMessages?.()) return;
-    const at = now();
-    if (at - lastContinuationAt < CONTINUATION_COOLDOWN_MS) return;
+  const maybeContinueEffect = (ctx: ExtensionContext): Effect.Effect<void> =>
+    Effect.sync(() => {
+      if (!goal || goal.status !== "active" || continuationQueued) return;
+      if (ctx.hasPendingMessages?.()) return;
+      const at = now();
+      if (at - lastContinuationAt < CONTINUATION_COOLDOWN_MS) return;
 
-    const usage = goalUsage(goal, ctx);
-    if (goal.tokenBudget != null && usage.tokensUsed >= goal.tokenBudget) {
-      const limitedGoal = budgetLimitGoal(ctx);
+      const usage = goalUsage(goal, ctx);
+      if (goal.tokenBudget != null && usage.tokensUsed >= goal.tokenBudget) {
+        const limitedGoal = budgetLimitGoal(ctx);
+        continuationQueued = true;
+        lastContinuationAt = at;
+        sendGoalPrompt(budgetLimitPrompt(limitedGoal, ctx));
+        return;
+      }
+
       continuationQueued = true;
       lastContinuationAt = at;
-      await sendGoalPrompt(budgetLimitPrompt(limitedGoal, ctx));
-      return;
-    }
+      sendGoalPrompt(continuationPrompt(goal, ctx));
+    });
 
-    continuationQueued = true;
-    lastContinuationAt = at;
-    await sendGoalPrompt(continuationPrompt(goal, ctx));
-  }
+  const maybeContinue = (ctx: ExtensionContext): Promise<void> => Effect.runPromise(maybeContinueEffect(ctx));
 
   pi.registerTool({
     name: "get_goal",
@@ -328,12 +332,16 @@ export default function goalExtension(pi: ExtensionAPI): void {
     description: "Get the current long-running thread goal, including status, budget, token usage, and elapsed time.",
     promptSnippet: "Get the current long-running thread goal and its progress.",
     parameters: Type.Object({}),
-    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
-      const serialized = serializeGoal(goal, ctx);
-      return {
-        content: [{ type: "text", text: serialized ? JSON.stringify(serialized, null, 2) : "No goal is currently set." }],
-        details: { goal: serialized },
-      };
+    execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      return Effect.runPromise(
+        Effect.sync(() => {
+          const serialized = serializeGoal(goal, ctx);
+          return {
+            content: [{ type: "text" as const, text: serialized ? JSON.stringify(serialized, null, 2) : "No goal is currently set." }],
+            details: { goal: serialized },
+          };
+        }),
+      );
     },
   });
 
@@ -350,13 +358,17 @@ export default function goalExtension(pi: ExtensionAPI): void {
       objective: Type.String({ description: "Concrete objective to pursue." }),
       token_budget: Type.Optional(Type.Integer({ description: "Optional positive token budget." })),
     }),
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      const next = createGoal(ctx, params.objective, params.token_budget);
-      const serialized = serializeGoal(next, ctx);
-      return {
-        content: [{ type: "text", text: `Goal active. ${summary(next, ctx)}` }],
-        details: { goal: serialized },
-      };
+    execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      return Effect.runPromise(
+        Effect.sync(() => {
+          const next = createGoal(ctx, params.objective, params.token_budget);
+          const serialized = serializeGoal(next, ctx);
+          return {
+            content: [{ type: "text" as const, text: `Goal active. ${summary(next, ctx)}` }],
+            details: { goal: serialized },
+          };
+        }),
+      );
     },
   });
 
@@ -372,13 +384,17 @@ export default function goalExtension(pi: ExtensionAPI): void {
     parameters: Type.Object({
       status: Type.Literal("complete", { description: "Only supported value." }),
     }),
-    async execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
-      const updated = completeGoal(ctx);
-      const serialized = serializeGoal(updated, ctx);
-      return {
-        content: [{ type: "text", text: `Goal complete. ${summary(updated, ctx)}` }],
-        details: { goal: serialized },
-      };
+    execute(_toolCallId, _params, _signal, _onUpdate, ctx) {
+      return Effect.runPromise(
+        Effect.sync(() => {
+          const updated = completeGoal(ctx);
+          const serialized = serializeGoal(updated, ctx);
+          return {
+            content: [{ type: "text" as const, text: `Goal complete. ${summary(updated, ctx)}` }],
+            details: { goal: serialized },
+          };
+        }),
+      );
     },
   });
 
@@ -449,35 +465,47 @@ export default function goalExtension(pi: ExtensionAPI): void {
     },
   });
 
-  pi.on("session_start", (_event, ctx) => {
-    const entries = ctx.sessionManager.getEntries();
-    for (let i = entries.length - 1; i >= 0; i--) {
-      const entry = entries[i];
-      if (entry.type === "custom" && entry.customType === CUSTOM_TYPE) {
-        goal = (entry.data as PersistedGoalState | undefined)?.goal;
-        break;
-      }
-    }
-    updateStatus(ctx);
-  });
+  pi.on("session_start", (_event, ctx) =>
+    Effect.runSync(
+      Effect.sync(() => {
+        const entries = ctx.sessionManager.getEntries();
+        for (let i = entries.length - 1; i >= 0; i--) {
+          const entry = entries[i];
+          if (entry.type === "custom" && entry.customType === CUSTOM_TYPE) {
+            goal = (entry.data as PersistedGoalState | undefined)?.goal;
+            break;
+          }
+        }
+        updateStatus(ctx);
+      }),
+    ),
+  );
 
   pi.on("agent_start", () => {
     continuationQueued = false;
   });
 
-  pi.on("agent_end", async (_event, ctx) => {
-    updateStatus(ctx);
-    await maybeContinue(ctx);
-  });
+  pi.on("agent_end", (_event, ctx) =>
+    Effect.runPromise(
+      Effect.zipRight(
+        Effect.sync(() => updateStatus(ctx)),
+        maybeContinueEffect(ctx),
+      ),
+    ),
+  );
 
-  pi.on("session_shutdown", (_event, ctx) => {
-    if (goal?.status === "active") {
-      const at = now();
-      goal.elapsedActiveMs = currentElapsedMs(goal, at);
-      goal.activeStartedAt = at;
-      goal.updatedAt = at;
-      persist();
-      updateStatus(ctx);
-    }
-  });
+  pi.on("session_shutdown", (_event, ctx) =>
+    Effect.runSync(
+      Effect.sync(() => {
+        if (goal?.status === "active") {
+          const at = now();
+          goal.elapsedActiveMs = currentElapsedMs(goal, at);
+          goal.activeStartedAt = at;
+          goal.updatedAt = at;
+          persist();
+          updateStatus(ctx);
+        }
+      }),
+    ),
+  );
 }

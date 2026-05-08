@@ -1,4 +1,5 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Effect, pipe } from "effect";
 
 type PiMode = {
   name: string;
@@ -12,51 +13,69 @@ type Registry = {
   modes: Map<string, PiMode>;
 };
 
-function registry(): Registry {
+const registry = (): Registry => {
   const global = globalThis as typeof globalThis & { __piModeRegistry?: Registry };
   global.__piModeRegistry ??= { modes: new Map() };
   return global.__piModeRegistry;
-}
+};
 
-function registerMode(mode: PiMode): void {
+const registerMode = (mode: PiMode): void => {
   registry().modes.set(mode.name, mode);
-}
+};
 
-async function switchToMode(target: "normal" | string, ctx: ExtensionContext): Promise<void> {
-  const modes = [...registry().modes.values()];
+const runModeHook = (ctx: ExtensionContext, hook: (ctx: ExtensionContext) => void | Promise<void>) =>
+  Effect.tryPromise({
+    try: () => Promise.resolve(hook(ctx)),
+    catch: (cause) => cause,
+  });
 
-  for (const mode of modes) {
-    if (mode.name !== target && mode.isActive()) {
-      await mode.exit(ctx);
-    }
-  }
-
-  if (target === "normal") {
+const notifyNormalMode = (ctx: ExtensionContext) =>
+  Effect.sync(() => {
     ctx.ui.notify("Mode: normal", "info");
     ctx.ui.setStatus("mode", undefined);
-    return;
-  }
+  });
 
-  const mode = registry().modes.get(target);
-  if (!mode) {
-    ctx.ui.notify(`Mode not available: ${target}`, "warning");
-    return;
-  }
+const switchToModeEffect = (target: "normal" | string, ctx: ExtensionContext) =>
+  Effect.gen(function* () {
+    const modes = [...registry().modes.values()];
 
-  if (!mode.isActive()) await mode.enter(ctx);
-  ctx.ui.setStatus(
-    "mode",
-    `${ctx.ui.theme.fg("warning", "▸▸")} ${ctx.ui.theme.fg("warning", `${mode.label} mode on`)} ${ctx.ui.theme.fg("dim", "(shift+tab to cycle)")}`,
+    yield* Effect.forEach(
+      modes.filter((mode) => mode.name !== target && mode.isActive()),
+      (mode) => runModeHook(ctx, mode.exit),
+      { discard: true },
+    );
+
+    if (target === "normal") return yield* notifyNormalMode(ctx);
+
+    const mode = registry().modes.get(target);
+    if (!mode) {
+      return yield* Effect.sync(() => ctx.ui.notify(`Mode not available: ${target}`, "warning"));
+    }
+
+    if (!mode.isActive()) yield* runModeHook(ctx, mode.enter);
+    yield* Effect.sync(() =>
+      ctx.ui.setStatus(
+        "mode",
+        `${ctx.ui.theme.fg("warning", "▸▸")} ${ctx.ui.theme.fg("warning", `${mode.label} mode on`)} ${ctx.ui.theme.fg("dim", "(shift+tab to cycle)")}`,
+      ),
+    );
+  });
+
+const switchToMode = (target: "normal" | string, ctx: ExtensionContext): Promise<void> =>
+  Effect.runPromise(switchToModeEffect(target, ctx));
+
+const cycleModeEffect = (ctx: ExtensionContext) =>
+  pipe(
+    Effect.sync(() => {
+      const modes = [...registry().modes.values()];
+      const order = ["normal", ...modes.map((mode) => mode.name)];
+      const active = modes.find((mode) => mode.isActive())?.name ?? "normal";
+      return order[(order.indexOf(active) + 1) % order.length] ?? "normal";
+    }),
+    Effect.flatMap((next) => switchToModeEffect(next, ctx)),
   );
-}
 
-async function cycleMode(ctx: ExtensionContext): Promise<void> {
-  const modes = [...registry().modes.values()];
-  const order = ["normal", ...modes.map((mode) => mode.name)];
-  const active = modes.find((mode) => mode.isActive())?.name ?? "normal";
-  const next = order[(order.indexOf(active) + 1) % order.length] ?? "normal";
-  await switchToMode(next, ctx);
-}
+const cycleMode = (ctx: ExtensionContext): Promise<void> => Effect.runPromise(cycleModeEffect(ctx));
 
 export default function modeSwitcher(pi: ExtensionAPI) {
   const global = globalThis as typeof globalThis & { __piRegisterMode?: (mode: PiMode) => void };
@@ -64,13 +83,9 @@ export default function modeSwitcher(pi: ExtensionAPI) {
 
   pi.registerCommand("mode", {
     description: "Switch mode: /mode [normal|plan|auto-review]",
-    handler: async (args, ctx) => {
+    handler: (args, ctx) => {
       const requested = args.trim();
-      if (!requested) {
-        await cycleMode(ctx);
-        return;
-      }
-      await switchToMode(requested, ctx);
+      return requested ? switchToMode(requested, ctx) : cycleMode(ctx);
     },
   });
 

@@ -1,4 +1,5 @@
 import type { AgentToolResult, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Effect, pipe } from "effect";
 import { Type } from "typebox";
 
 const ORACLE_MODEL = "openai-codex/gpt-5.5";
@@ -20,55 +21,77 @@ Rules:
 ${extraContext ? `Additional context from caller:\n${extraContext}\n\n` : ""}Question:\n${question}`;
 }
 
-async function askOracle(
+type OracleDetails = { model: string; tools: string[]; stdout: string; stderr?: string };
+type ExecResult = { stdout: string; stderr: string; code: number };
+
+const oracleDetails = (stdout = "", stderr?: string): OracleDetails => ({
+  model: ORACLE_MODEL,
+  tools: ORACLE_TOOLS.split(","),
+  stdout,
+  stderr,
+});
+
+const oracleErrorResult = (text: string, details = oracleDetails()): AgentToolResult<OracleDetails> => ({
+  isError: true,
+  content: [{ type: "text", text }],
+  details,
+});
+
+const askOracleEffect = (
   pi: ExtensionAPI,
   ctx: ExtensionContext,
   question: string,
   extraContext?: string,
-): Promise<AgentToolResult<{ model: string; tools: string[]; stdout: string; stderr?: string }>> {
+): Effect.Effect<AgentToolResult<OracleDetails>, never> => {
   const trimmed = question.trim();
-  if (!trimmed) {
-    return {
-      isError: true,
-      content: [{ type: "text", text: "oracle question must not be empty" }],
-      details: { model: ORACLE_MODEL, tools: ORACLE_TOOLS.split(","), stdout: "" },
-    };
-  }
+  if (!trimmed) return Effect.succeed(oracleErrorResult("oracle question must not be empty"));
 
-  const result = await pi.exec(
-    "pi",
-    [
-      "--model",
-      ORACLE_MODEL,
-      "--thinking",
-      ORACLE_THINKING,
-      "--tools",
-      ORACLE_TOOLS,
-      "--no-extensions",
-      "--no-skills",
-      "--no-prompt-templates",
-      "--no-session",
-      "-p",
-      buildOraclePrompt(trimmed, extraContext),
-    ],
-    { cwd: ctx.cwd, signal: ctx.signal, timeout: ORACLE_TIMEOUT_MS },
+  return pipe(
+    Effect.tryPromise({
+      try: () =>
+        pi.exec(
+          "pi",
+          [
+            "--model",
+            ORACLE_MODEL,
+            "--thinking",
+            ORACLE_THINKING,
+            "--tools",
+            ORACLE_TOOLS,
+            "--no-extensions",
+            "--no-skills",
+            "--no-prompt-templates",
+            "--no-session",
+            "-p",
+            buildOraclePrompt(trimmed, extraContext),
+          ],
+          { cwd: ctx.cwd, signal: ctx.signal, timeout: ORACLE_TIMEOUT_MS },
+        ),
+      catch: (cause) => (cause instanceof Error ? cause : new Error(String(cause))),
+    }),
+    Effect.map((result: ExecResult) => {
+      const stdout = result.stdout.trim();
+      const stderr = result.stderr.trim();
+      const details = oracleDetails(stdout, stderr || undefined);
+      if (result.code !== 0) {
+        return oracleErrorResult(stderr || stdout || `oracle exited with code ${result.code}`, details);
+      }
+      return {
+        content: [{ type: "text" as const, text: stdout || "Oracle returned no output." }],
+        details,
+      };
+    }),
+    Effect.catchAll((error) => Effect.succeed(oracleErrorResult(error.message))),
   );
+};
 
-  const stdout = result.stdout.trim();
-  const stderr = result.stderr.trim();
-  if (result.code !== 0) {
-    const message = stderr || stdout || `oracle exited with code ${result.code}`;
-    return {
-      isError: true,
-      content: [{ type: "text", text: message }],
-      details: { model: ORACLE_MODEL, tools: ORACLE_TOOLS.split(","), stdout, stderr },
-    };
-  }
-
-  return {
-    content: [{ type: "text", text: stdout || "Oracle returned no output." }],
-    details: { model: ORACLE_MODEL, tools: ORACLE_TOOLS.split(","), stdout, stderr: stderr || undefined },
-  };
+function askOracle(
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+  question: string,
+  extraContext?: string,
+): Promise<AgentToolResult<OracleDetails>> {
+  return Effect.runPromise(askOracleEffect(pi, ctx, question, extraContext));
 }
 
 export default function oracle(pi: ExtensionAPI): void {

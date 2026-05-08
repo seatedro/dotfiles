@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ReadonlyFooterDataProvider } from "@earendil-works/pi-coding-agent";
 import type { Component, TUI } from "@earendil-works/pi-tui";
 import type { Theme } from "@earendil-works/pi-coding-agent";
+import { Effect } from "effect";
 
 function stripAnsi(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, "");
@@ -69,10 +70,12 @@ function formatMode(theme: Theme, statuses: Map<string, string>): string | undef
 }
 
 export default function polishedFooter(pi: ExtensionAPI) {
-  pi.on("session_start", (_event, ctx) => {
-    if (!ctx.hasUI) return;
+  pi.on("session_start", (_event, ctx) =>
+    Effect.runSync(
+      Effect.sync(() => {
+        if (!ctx.hasUI) return;
 
-    ctx.ui.setFooter((_tui: TUI, theme: Theme, footerData: ReadonlyFooterDataProvider): Component => ({
+        ctx.ui.setFooter((_tui: TUI, theme: Theme, footerData: ReadonlyFooterDataProvider): Component => ({
       invalidate() {},
       render(width: number): string[] {
         const entries = ctx.sessionManager.getEntries();
@@ -114,7 +117,7 @@ export default function polishedFooter(pi: ExtensionAPI) {
           contextPart,
         ].filter(Boolean) as string[];
 
-        const statuses = new Map(footerData.getExtensionStatuses());
+        const statuses = new Map<string, string>(footerData.getExtensionStatuses());
         const mode = formatMode(theme, statuses);
         const extraStatuses = [...statuses.entries()]
           .filter(([key]) => !["mode", "plan-mode", "guardian-auto-review"].includes(key))
@@ -142,6 +145,8 @@ export default function polishedFooter(pi: ExtensionAPI) {
           fitLine(left, right, width),
         ];
       },
-    }));
-  });
+        }));
+      }),
+    ),
+  );
 }
