@@ -11,7 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "effect": "^3.21.2"
+    "effect": "^3.21.2",
+    "typebox": "^1.1.38"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
