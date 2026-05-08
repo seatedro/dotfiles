@@ -2,3 +2,13 @@ nvim/pack
 .config/tmux/plugins
 Brewfile.lock.json
 **/.DS_Store
+
+# Pi secrets/state/generated files
+dot_pi/agent/auth.json
+dot_pi/agent/node_modules/
+dot_pi/agent/**/node_modules/
+dot_pi/agent/sessions/
+dot_pi/agent/state/
+dot_pi/agent/package-lock.json
+dot_pi/agent/**/__pycache__/
+*.pyc

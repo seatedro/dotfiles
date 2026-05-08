@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "organization": "rohit",
+  "date": "March 2026",
+  "abstract": "Recall skill for temporal session history, topic retrieval via QMD BM25, and session-file graph generation. Every recall concludes with a single highest-leverage next action.",
+  "references": [
+    "qmd://notes",
+    "~/.claude/history.jsonl",
+    "~/.codex/history.jsonl"
+  ]
+}

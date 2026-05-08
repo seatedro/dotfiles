@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Local-side helper for Pi OSC image paste over SSH.
+# Usage:
+#   pi-image-paste-local [image-file]
+# Then paste into the SSH/Pi terminal. The remote osc-image-paste extension
+# receives the OSC payload, writes /tmp/pi-osc-image-*.png, and inserts the path.
+
+usage() {
+  cat >&2 <<'EOF'
+Usage: pi-image-paste-local [image-file]
+
+If image-file is omitted, tries to read an image from your LOCAL clipboard.
+The OSC payload is copied to your LOCAL clipboard; paste it into the SSH Pi session.
+
+Requires one of:
+  macOS: pngpaste (recommended) or osascript fallback
+  Wayland: wl-paste + wl-copy
+  X11: xclip
+  Windows/WSL local shell: powershell.exe
+EOF
+}
+
+need() { command -v "$1" >/dev/null 2>&1; }
+
+copy_bytes_to_clipboard() {
+  if need pbcopy; then
+    pbcopy
+  elif need wl-copy; then
+    wl-copy
+  elif need xclip; then
+    xclip -selection clipboard
+  elif need clip.exe; then
+    clip.exe
+  elif need powershell.exe; then
+    powershell.exe -NoProfile -Command 'Set-Clipboard -Value ([Console]::In.ReadToEnd())'
+  else
+    echo "No clipboard setter found (pbcopy/wl-copy/xclip/clip.exe). Use --print?" >&2
+    return 1
+  fi
+}
+
+mime_for() {
+  case "${1,,}" in
+    *.jpg|*.jpeg) echo image/jpeg ;;
+    *.webp) echo image/webp ;;
+    *.gif) echo image/gif ;;
+    *.png) echo image/png ;;
+    *) echo image/png ;;
+  esac
+}
+
+clip_to_file() {
+  local out="$1"
+  if need pngpaste; then
+    pngpaste "$out"
+    return
+  fi
+
+  if [[ "$(uname -s 2>/dev/null || true)" == "Darwin" ]] && need osascript; then
+    osascript <<EOF
+set outPath to POSIX file "$out"
+try
+  set pngData to the clipboard as «class PNGf»
+  set f to open for access outPath with write permission
+  set eof f to 0
+  write pngData to f
+  close access f
+on error errMsg
+  try
+    close access outPath
+  end try
+  error errMsg
+end try
+EOF
+    return
+  fi
+
+  if need wl-paste; then
+    wl-paste --type image/png --no-newline > "$out"
+    return
+  fi
+
+  if need xclip; then
+    xclip -selection clipboard -t image/png -o > "$out"
+    return
+  fi
+
+  if need powershell.exe; then
+    local win
+    win="$(wslpath -w "$out" 2>/dev/null || printf '%s' "$out")"
+    powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; \$img=[System.Windows.Forms.Clipboard]::GetImage(); if (\$img -eq \$null) { exit 1 }; \$img.Save('$win',[System.Drawing.Imaging.ImageFormat]::Png)"
+    return
+  fi
+
+  echo "Could not read image from clipboard." >&2
+  return 1
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+tmp=""
+if [[ $# -gt 0 ]]; then
+  file="$1"
+else
+  tmp="$(mktemp "${TMPDIR:-/tmp}/pi-clip.XXXXXX.png")"
+  clip_to_file "$tmp"
+  file="$tmp"
+fi
+
+if [[ ! -s "$file" ]]; then
+  echo "No image data found: $file" >&2
+  exit 1
+fi
+
+mime="$(mime_for "$file")"
+name_b64="$(basename "$file" | base64 | tr -d '\n')"
+data_b64="$(base64 < "$file" | tr -d '\n')"
+payload=$'\033'']777;pi-image-paste;name='"$name_b64"';mime='"$mime"':'"$data_b64"$'\a'
+
+printf '%s' "$payload" | copy_bytes_to_clipboard
+printf 'Copied Pi image-paste payload to local clipboard. Paste into the SSH/Pi terminal now.\n' >&2
+
+[[ -n "$tmp" ]] && rm -f "$tmp"

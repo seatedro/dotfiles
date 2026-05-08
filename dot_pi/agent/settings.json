@@ -1,0 +1,11 @@
+{
+  "lastChangelogVersion": "0.74.0",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "medium",
+  "hideThinkingBlock": true,
+  "packages": [
+    "npm:pi-skill-dollar",
+    "npm:@ryan_nookpi/pi-extension-codex-fast-mode"
+  ]
+}

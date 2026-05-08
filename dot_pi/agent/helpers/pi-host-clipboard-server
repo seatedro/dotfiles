@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""Local host clipboard image bridge for Pi.
+
+On your macbook host:
+  PI_HOST_CLIPBOARD_BIND=0.0.0.0 pi-host-clipboard-server
+
+Remote Pi will try:
+  http://macbook:17653/image
+"""
+
+from __future__ import annotations
+
+import base64
+import json
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tempfile
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+HOST = os.environ.get("PI_HOST_CLIPBOARD_BIND", "0.0.0.0")
+PORT = int(os.environ.get("PI_HOST_CLIPBOARD_PORT", "17653"))
+
+
+def run(cmd: list[str], *, input: bytes | None = None, timeout: float = 5) -> bytes | None:
+    try:
+        result = subprocess.run(cmd, input=input, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+    except Exception:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout
+
+
+def read_macos() -> tuple[str, bytes] | None:
+    if shutil.which("pngpaste"):
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            path = Path(f.name)
+        try:
+            if subprocess.run(["pngpaste", str(path)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+                data = path.read_bytes()
+                if data:
+                    return "image/png", data
+        finally:
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
+    if shutil.which("osascript"):
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+            path = Path(f.name)
+        script = f'''
+set outPath to POSIX file "{path}"
+try
+  set pngData to the clipboard as «class PNGf»
+  set f to open for access outPath with write permission
+  set eof f to 0
+  write pngData to f
+  close access f
+on error errMsg
+  try
+    close access outPath
+  end try
+  error errMsg
+end try
+'''
+        try:
+            if subprocess.run(["osascript", "-e", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+                data = path.read_bytes()
+                if data:
+                    return "image/png", data
+        finally:
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
+    return None
+
+
+def read_wayland() -> tuple[str, bytes] | None:
+    if not shutil.which("wl-paste"):
+        return None
+    types = run(["wl-paste", "--list-types"], timeout=1)
+    candidates = ["image/png", "image/jpeg", "image/webp", "image/gif"]
+    if types:
+        available = {line.strip() for line in types.decode("utf-8", "ignore").splitlines()}
+        candidates = [t for t in candidates if t in available] + candidates
+    for mime in candidates:
+        data = run(["wl-paste", "--type", mime, "--no-newline"], timeout=3)
+        if data:
+            return mime, data
+    return None
+
+
+def read_x11() -> tuple[str, bytes] | None:
+    if not shutil.which("xclip"):
+        return None
+    for mime in ["image/png", "image/jpeg", "image/webp", "image/gif"]:
+        data = run(["xclip", "-selection", "clipboard", "-t", mime, "-o"], timeout=3)
+        if data:
+            return mime, data
+    return None
+
+
+def read_windows() -> tuple[str, bytes] | None:
+    pwsh = shutil.which("powershell.exe") or shutil.which("powershell") or shutil.which("pwsh")
+    if not pwsh:
+        return None
+    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
+        path = Path(f.name)
+    try:
+        win_path = str(path)
+        if shutil.which("wslpath"):
+            converted = run(["wslpath", "-w", str(path)], timeout=1)
+            if converted:
+                win_path = converted.decode().strip()
+        escaped = win_path.replace("'", "''")
+        script = (
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "Add-Type -AssemblyName System.Drawing; "
+            "$img=[System.Windows.Forms.Clipboard]::GetImage(); "
+            "if ($img -eq $null) { exit 1 }; "
+            f"$img.Save('{escaped}', [System.Drawing.Imaging.ImageFormat]::Png)"
+        )
+        if subprocess.run([pwsh, "-NoProfile", "-Command", script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+            data = path.read_bytes()
+            if data:
+                return "image/png", data
+    finally:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+    return None
+
+
+def read_clipboard_image() -> tuple[str, bytes] | None:
+    system = platform.system().lower()
+    if system == "darwin":
+        return read_macos()
+    if system == "windows":
+        return read_windows()
+    return read_wayland() or read_x11() or read_windows()
+
+
+class Handler(BaseHTTPRequestHandler):
+    def log_message(self, fmt: str, *args: object) -> None:
+        return
+
+    def do_GET(self) -> None:
+        if self.path == "/health":
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+            return
+        if self.path != "/image":
+            self.send_response(404)
+            self.end_headers()
+            return
+        image = read_clipboard_image()
+        if image is None:
+            self.send_response(404)
+            self.send_header("content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": "no image on clipboard"}).encode())
+            return
+        mime, data = image
+        body = json.dumps({"mime": mime, "data": base64.b64encode(data).decode()}).encode()
+        self.send_response(200)
+        self.send_header("content-type", "application/json")
+        self.send_header("content-length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+
+if __name__ == "__main__":
+    server = ThreadingHTTPServer((HOST, PORT), Handler)
+    print(f"Pi host clipboard server listening on http://{HOST}:{PORT}", file=sys.stderr)
+    print("Remote Pi default URL: http://macbook:17653/image", file=sys.stderr)
+    server.serve_forever()
