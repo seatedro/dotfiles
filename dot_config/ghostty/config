@@ -63,5 +63,10 @@ font-thicken = false
 
 selection-invert-fg-bg = true
 keybind = shift+enter=text:\n
+keybind = ctrl+1=csi:49;5u
+keybind = ctrl+2=csi:50;5u
+keybind = ctrl+3=csi:51;5u
+keybind = ctrl+4=csi:52;5u
+keybind = ctrl+5=csi:53;5u
 keybind = global:super+grave_accent=toggle_quick_terminal
 quick-terminal-position = top
