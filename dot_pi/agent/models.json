@@ -1,0 +1,15 @@
+{
+  "providers": {
+    "charon-openai": {
+      "baseUrl": "https://charon.internal.exa.ai/v1",
+      "api": "openai-responses",
+      "apiKey": "!cat \"$HOME/.pi/agent/charon-openai-api-key\"",
+      "models": [
+        {
+          "id": "kindle-alpha-api",
+          "name": "gpt-6"
+        }
+      ]
+    }
+  }
+}

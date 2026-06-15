@@ -4,8 +4,8 @@ Brewfile.lock.json
 **/.DS_Store
 
 # Pi secrets/state/generated files
+dot_pi/agent/charon-openai-api-key
 dot_pi/agent/auth.json
-dot_pi/agent/models.json
 dot_pi/agent/trust.json
 dot_pi/agent/node_modules/
 dot_pi/agent/**/node_modules/
