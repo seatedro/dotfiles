@@ -5,8 +5,11 @@ Brewfile.lock.json
 
 # Pi secrets/state/generated files
 dot_pi/agent/auth.json
+dot_pi/agent/models.json
+dot_pi/agent/trust.json
 dot_pi/agent/node_modules/
 dot_pi/agent/**/node_modules/
+dot_pi/agent/npm/
 dot_pi/agent/sessions/
 dot_pi/agent/state/
 dot_pi/agent/package-lock.json

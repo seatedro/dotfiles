@@ -1,11 +1,13 @@
 {
-  "lastChangelogVersion": "0.74.0",
+  "lastChangelogVersion": "0.79.4",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.5",
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "high",
   "hideThinkingBlock": true,
   "packages": [
     "npm:pi-skill-dollar",
-    "npm:@ryan_nookpi/pi-extension-codex-fast-mode"
-  ]
+    "npm:@ryan_nookpi/pi-extension-codex-fast-mode",
+    "npm:pi-goal-x"
+  ],
+  "theme": "light"
 }

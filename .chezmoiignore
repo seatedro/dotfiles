@@ -2,3 +2,16 @@
 .config/opencode/bun.lock
 .config/opencode/package.json
 .config/opencode/tsconfig.tsbuildinfo
+
+# Pi secrets/state/generated files
+.pi/agent/auth.json
+.pi/agent/models.json
+.pi/agent/trust.json
+.pi/agent/node_modules/
+.pi/agent/**/node_modules/
+.pi/agent/npm/
+.pi/agent/sessions/
+.pi/agent/state/
+.pi/agent/package-lock.json
+.pi/agent/**/__pycache__/
+*.pyc

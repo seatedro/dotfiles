@@ -8,7 +8,6 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 const PORT = process.env.PI_HOST_CLIPBOARD_PORT || "17653";
 const TIMEOUT_MS = 3000;
 const AUTO_START = process.env.PI_HOST_CLIPBOARD_AUTOSTART !== "0";
-const LEGACY_DEFAULT_HOST = "macbook";
 
 type BridgePath = "image" | "health";
 type HostTarget = {
@@ -129,7 +128,7 @@ const targetFromNode = (clientIp: string, node: TailscaleNode): HostTarget => {
   };
 };
 
-const identifyHost = (pi: ExtensionAPI): Effect.Effect<HostTarget, Error> => {
+const detectHost = (pi: ExtensionAPI): Effect.Effect<HostTarget | undefined, Error> => {
   const explicitUrl = process.env.PI_HOST_CLIPBOARD_URL;
   if (explicitUrl) {
     return Effect.try({
@@ -144,22 +143,28 @@ const identifyHost = (pi: ExtensionAPI): Effect.Effect<HostTarget, Error> => {
   return pipe(
     discoverClientIp(pi),
     Effect.flatMap((clientIp) => {
-      if (!clientIp) {
-        return Effect.succeed({
-          label: LEGACY_DEFAULT_HOST,
-          urlHosts: [LEGACY_DEFAULT_HOST, "127.0.0.1"],
-          sshHosts: [LEGACY_DEFAULT_HOST],
-        });
-      }
+      if (!clientIp) return Effect.succeed(undefined);
       return pipe(
         tailscaleNodes(pi),
         Effect.map((nodes) => nodes.find((node) => node.TailscaleIPs?.includes(clientIp))),
-        Effect.map((node) => (node ? targetFromNode(clientIp, node) : { label: clientIp, clientIp, urlHosts: [clientIp], sshHosts: [clientIp] })),
+        Effect.map((node) =>
+          node ? targetFromNode(clientIp, node) : { label: clientIp, clientIp, urlHosts: [clientIp], sshHosts: [clientIp] },
+        ),
         Effect.catchAll(() => Effect.succeed({ label: clientIp, clientIp, urlHosts: [clientIp], sshHosts: [clientIp] })),
       );
     }),
   );
 };
+
+const identifyHost = (pi: ExtensionAPI): Effect.Effect<HostTarget, Error> =>
+  pipe(
+    detectHost(pi),
+    Effect.flatMap((host) =>
+      host
+        ? Effect.succeed(host)
+        : Effect.fail(new Error("local Pi session detected; host clipboard bridge disabled")),
+    ),
+  );
 
 const urlFor = (host: string, path: BridgePath): string => {
   const formattedHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
@@ -368,6 +373,20 @@ export default function hostClipboardImagePaste(pi: ExtensionAPI) {
 
   pi.on("session_start", async (_event, ctx) => {
     if (!ctx.hasUI) return;
+
+    const host = await Effect.runPromise(
+      pipe(
+        detectHost(pi),
+        Effect.catchAll((error) =>
+          Effect.sync(() => {
+            ctx.ui.notify(`Host clipboard bridge detection failed: ${error.message}`, "warning");
+            return undefined;
+          }),
+        ),
+      ),
+    );
+    if (!host) return;
+
     activeCtx = ctx;
 
     if (AUTO_START) {
